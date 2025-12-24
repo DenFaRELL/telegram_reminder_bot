@@ -1,0 +1,26 @@
+@startuml
+
+actor User as user
+participant "Telegram" as telegram
+participant "BotHandler" as bot
+participant "Database" as db
+
+user -> telegram : Отправляет команду /add_task
+telegram -> bot : Вызов обработчика
+bot -> user : Запрашивает название задачи
+user -> telegram : Вводит "Подготовить отчёт"
+telegram -> bot : Передаёт текст
+bot -> user : Запрашивает описание
+user -> telegram : Вводит "Написать раздел 3"
+telegram -> bot : Передаёт текст
+bot -> user : Запрашивает дедлайн (дд.мм.гггг)
+user -> telegram : Вводит "15.12.2024"
+telegram -> bot : Передаёт текст
+bot -> user : Запрашивает приоритет
+user -> telegram : Вводит "high"
+telegram -> bot : Передаёт текст
+bot -> db : add_task(user_id, данные)
+db --> bot : Возвращает ID задачи
+bot -> user : "✅ Задача добавлена!"
+
+@enduml
