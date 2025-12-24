@@ -1,4 +1,5 @@
-@startuml
+@startuml use_case
+
 left to right direction
 actor User as user
 

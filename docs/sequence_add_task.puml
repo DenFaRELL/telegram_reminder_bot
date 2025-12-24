@@ -1,4 +1,7 @@
-@startuml
+@startuml sequence_add_task
+
+plantuml.configuration.lintDiagramNoName
+
 
 actor User as user
 participant "Telegram" as telegram
