@@ -45,7 +45,7 @@ async def show_tasks_list(message: Message, user_id):
             END,
             deadline
         """,
-        (user_id,)
+        (user_id,),
     )
 
     active_tasks = [dict(row) for row in cursor.fetchall()]
@@ -59,7 +59,7 @@ async def show_tasks_list(message: Message, user_id):
         ORDER BY deadline DESC
         LIMIT 10
         """,
-        (user_id,)
+        (user_id,),
     )
 
     completed_tasks = [dict(row) for row in cursor.fetchall()]
@@ -85,17 +85,15 @@ async def show_tasks_list(message: Message, user_id):
             response += "📋 <b>Активные задачи:</b>\n\n"
 
             for i, task in enumerate(active_tasks[:5], 1):
-                title = task['title']
+                title = task["title"]
                 response += f"<b>{i}.</b> {title}\n"
 
-                if task['deadline']:
+                if task["deadline"]:
                     response += f"📅 <i>До: {task['deadline']}</i>\n"
 
-                priority_emoji = {
-                    'high': '🔴',
-                    'medium': '🟡',
-                    'low': '🟢'
-                }.get(task['priority'], '⚪')
+                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+                    task["priority"], "⚪"
+                )
 
                 response += f"{priority_emoji} <i>Приоритет: {task['priority']}</i>\n\n"
 
@@ -103,10 +101,10 @@ async def show_tasks_list(message: Message, user_id):
             response += "\n🏁 <b>Завершённые задачи:</b>\n\n"
 
             for task in completed_tasks[:3]:  # Показываем только 3 завершенные
-                title = task['title']
+                title = task["title"]
                 response += f"✅ <b>{title}</b>\n"
 
-                if task['deadline']:
+                if task["deadline"]:
                     response += f"📅 <i>Было до: {task['deadline']}</i>\n\n"
                 else:
                     response += "\n"
@@ -133,18 +131,16 @@ async def tasks_page_handler(callback: CallbackQuery):
     response = "✅ <b>Активные задачи:</b>\n\n"
     response += "<i>Выберите задачу для просмотра деталей:</i>\n\n"
 
-    for i, task in enumerate(tasks[start_index:start_index+5], 1):
-        title = task['title']
+    for i, task in enumerate(tasks[start_index : start_index + 5], 1):
+        title = task["title"]
         response += f"<b>{start_index + i}.</b> {title}\n"
 
-        if task['deadline']:
+        if task["deadline"]:
             response += f"📅 <i>До: {task['deadline']}</i>\n"
 
-        priority_emoji = {
-            'high': '🔴',
-            'medium': '🟡',
-            'low': '🟢'
-        }.get(task['priority'], '⚪')
+        priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+            task["priority"], "⚪"
+        )
 
         response += f"{priority_emoji} <i>Приоритет: {task['priority']}</i>\n\n"
 
@@ -152,7 +148,9 @@ async def tasks_page_handler(callback: CallbackQuery):
         response,
         parse_mode="HTML",
     )
-    await callback.message.edit_reply_markup(reply_markup=get_tasks_selection_keyboard(tasks, start_index))
+    await callback.message.edit_reply_markup(
+        reply_markup=get_tasks_selection_keyboard(tasks, start_index)
+    )
     await callback.answer()
 
 
@@ -186,25 +184,25 @@ async def show_task_details(message_or_callback, task_id):
     response = "✅ <b>Детали задачи:</b>\n\n"
     response += f"📝 <b>Название:</b> {task['title']}\n"
 
-    if task['description']:
+    if task["description"]:
         response += f"📄 <b>Описание:</b> {task['description']}\n"
 
-    if task['deadline']:
+    if task["deadline"]:
         # Проверяем, не просрочена ли задача
-        deadline_date = datetime.strptime(task['deadline'], '%Y-%m-%d').date()
+        deadline_date = datetime.strptime(task["deadline"], "%Y-%m-%d").date()
         today = datetime.now().date()
 
         if deadline_date < today:
             response += f"⏰ <b>Дедлайн:</b> {task['deadline']} <b>(ПРОСРОЧЕНО!)</b>\n"
         else:
             days_left = (deadline_date - today).days
-            response += f"📅 <b>Дедлайн:</b> {task['deadline']} (осталось {days_left} дней)\n"
+            response += (
+                f"📅 <b>Дедлайн:</b> {task['deadline']} (осталось {days_left} дней)\n"
+            )
 
-    priority_emoji = {
-        'high': '🔴',
-        'medium': '🟡',
-        'low': '🟢'
-    }.get(task['priority'], '⚪')
+    priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+        task["priority"], "⚪"
+    )
 
     response += f"🎯 <b>Приоритет:</b> {priority_emoji} {task['priority']}\n"
     response += f"📊 <b>Статус:</b> {'✅ Выполнена' if task['is_completed'] else '⏳ В работе'}\n"
@@ -212,16 +210,12 @@ async def show_task_details(message_or_callback, task_id):
     # Определяем куда отправлять ответ
     if isinstance(message_or_callback, CallbackQuery):
         await message_or_callback.message.answer(
-            response,
-            reply_markup=get_task_detail_keyboard(task_id),
-            parse_mode="HTML"
+            response, reply_markup=get_task_detail_keyboard(task_id), parse_mode="HTML"
         )
         await message_or_callback.answer()
     else:
         await message_or_callback.answer(
-            response,
-            reply_markup=get_task_detail_keyboard(task_id),
-            parse_mode="HTML"
+            response, reply_markup=get_task_detail_keyboard(task_id), parse_mode="HTML"
         )
 
 
@@ -229,6 +223,7 @@ async def show_task_details(message_or_callback, task_id):
 async def tasks_help_handler(callback: CallbackQuery):
     """Помощь по задачам"""
     from src.handlers.main import show_tasks_help
+
     await callback.answer()
     await show_tasks_help(callback.message)
 
@@ -241,9 +236,8 @@ async def add_task_handler_callback(callback: CallbackQuery, state: FSMContext):
     user_current_section[user_id] = "tasks"
 
     await callback.message.answer(
-        "📝 <b>Добавление новой задачи</b>\n\n"
-        "Введите название задачи:",
-        parse_mode="HTML"
+        "📝 <b>Добавление новой задачи</b>\n\nВведите название задачи:",
+        parse_mode="HTML",
     )
 
     await state.set_state(TaskStates.waiting_for_title)
@@ -256,9 +250,8 @@ async def add_task_handler_message(message: Message, state: FSMContext):
     user_current_section[user_id] = "tasks"
 
     await message.answer(
-        "📝 <b>Добавление новой задачи</b>\n\n"
-        "Введите название задачи:",
-        parse_mode="HTML"
+        "📝 <b>Добавление новой задачи</b>\n\nВведите название задачи:",
+        parse_mode="HTML",
     )
 
     await state.set_state(TaskStates.waiting_for_title)
@@ -271,7 +264,7 @@ async def process_task_title(message: Message, state: FSMContext):
 
     await message.answer(
         "📝 <b>Введите описание задачи (или напишите 'нет' если не нужно):</b>",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await state.set_state(TaskStates.waiting_for_description)
@@ -289,7 +282,7 @@ async def process_task_description(message: Message, state: FSMContext):
     await message.answer(
         "📅 <b>Введите дедлайн задачи (формат: ГГГГ-ММ-ДД, или напишите 'нет'):</b>\n"
         "<i>Пример: 2024-12-31</i>",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await state.set_state(TaskStates.waiting_for_deadline)
@@ -305,13 +298,13 @@ async def process_task_deadline(message: Message, state: FSMContext):
     else:
         # Проверяем формат даты
         try:
-            datetime.strptime(deadline, '%Y-%m-%d')
+            datetime.strptime(deadline, "%Y-%m-%d")
         except ValueError:
             await message.answer(
                 "❌ <b>Неверный формат даты!</b>\n"
                 "Используйте формат: ГГГГ-ММ-ДД\n"
                 "Пример: 2024-12-31",
-                parse_mode="HTML"
+                parse_mode="HTML",
             )
             return
 
@@ -320,7 +313,7 @@ async def process_task_deadline(message: Message, state: FSMContext):
     await message.answer(
         "🎯 <b>Выберите приоритет задачи:</b>",
         reply_markup=get_priority_selection_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await state.set_state(TaskStates.waiting_for_priority)
@@ -351,8 +344,8 @@ async def process_task_priority(callback: CallbackQuery, state: FSMContext):
                 data.get("description"),
                 data.get("deadline"),
                 priority,
-                False  # is_completed
-            )
+                False,  # is_completed
+            ),
         )
         conn.commit()
 
@@ -368,7 +361,7 @@ async def process_task_priority(callback: CallbackQuery, state: FSMContext):
         priority_emoji = {
             "high": "🔴 Высокий",
             "medium": "🟡 Средний",
-            "low": "🟢 Низкий"
+            "low": "🟢 Низкий",
         }
         response += f"<b>Приоритет:</b> {priority_emoji[priority]}\n"
 
@@ -376,20 +369,26 @@ async def process_task_priority(callback: CallbackQuery, state: FSMContext):
 
         # Показываем кнопку для возврата к списку задач
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Вернуться к задачам", callback_data="back_to_tasks")]
-        ])
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ Вернуться к задачам", callback_data="back_to_tasks"
+                    )
+                ]
+            ]
+        )
 
         await callback.message.answer(
             "<b>Нажмите кнопку чтобы вернуться к задачам:</b>",
             reply_markup=keyboard,
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
 
     except Exception as e:
         await callback.message.answer(
-            f"❌ <b>Ошибка при сохранении задачи:</b>\n{str(e)}",
-            parse_mode="HTML"
+            f"❌ <b>Ошибка при сохранении задачи:</b>\n{str(e)}", parse_mode="HTML"
         )
 
     finally:
@@ -399,6 +398,7 @@ async def process_task_priority(callback: CallbackQuery, state: FSMContext):
 
 
 # ==================== ОБРАБОТКА ДЕТАЛЕЙ, РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ЗАДАЧ ====================
+
 
 @router.callback_query(F.data.startswith("view_task_"))
 async def view_task_handler(callback: CallbackQuery):
@@ -418,7 +418,7 @@ async def complete_task_handler(callback: CallbackQuery):
     conn.commit()
 
     cursor.execute("SELECT title FROM tasks WHERE id = ?", (task_id,))
-    task_title = cursor.fetchone()['title']
+    task_title = cursor.fetchone()["title"]
     conn.close()
 
     await callback.answer(f"✅ Задача '{task_title}' завершена!")
@@ -426,14 +426,21 @@ async def complete_task_handler(callback: CallbackQuery):
     await callback.message.edit_text(
         f"✅ <b>Задача '{task_title}' успешно завершена!</b>\n\n"
         f"Нажмите кнопку чтобы вернуться к задачам:",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     # Кнопка для возврата к задачам
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Вернуться к задачам", callback_data="back_to_tasks")]
-    ])
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Вернуться к задачам", callback_data="back_to_tasks"
+                )
+            ]
+        ]
+    )
     await callback.message.edit_reply_markup(reply_markup=keyboard)
 
 
@@ -457,17 +464,15 @@ async def edit_task_selected(callback: CallbackQuery):
     response = f"✏️ <b>Редактирование задачи:</b>\n\n"
     response += f"📝 <b>Название:</b> {task['title']}\n"
 
-    if task['description']:
+    if task["description"]:
         response += f"📄 <b>Описание:</b> {task['description']}\n"
 
-    if task['deadline']:
+    if task["deadline"]:
         response += f"📅 <b>Дедлайн:</b> {task['deadline']}\n"
 
-    priority_emoji = {
-        'high': '🔴',
-        'medium': '🟡',
-        'low': '🟢'
-    }.get(task['priority'], '⚪')
+    priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+        task["priority"], "⚪"
+    )
 
     response += f"🎯 <b>Приоритет:</b> {priority_emoji} {task['priority']}\n"
     response += f"📊 <b>Статус:</b> {'✅ Выполнена' if task['is_completed'] else '⏳ В работе'}\n"
@@ -475,7 +480,9 @@ async def edit_task_selected(callback: CallbackQuery):
     response += "\n<b>Выберите что изменить:</b>"
 
     await callback.message.edit_text(response, parse_mode="HTML")
-    await callback.message.edit_reply_markup(reply_markup=get_edit_task_keyboard(task_id))
+    await callback.message.edit_reply_markup(
+        reply_markup=get_edit_task_keyboard(task_id)
+    )
 
 
 @router.callback_query(F.data.startswith("delete_task_"))
@@ -498,10 +505,10 @@ async def delete_task_selected(callback: CallbackQuery):
     response = f"🗑️ <b>Удаление задачи:</b>\n\n"
     response += f"📝 <b>Название:</b> {task['title']}\n"
 
-    if task['description']:
+    if task["description"]:
         response += f"📄 <b>Описание:</b> {task['description']}\n"
 
-    if task['deadline']:
+    if task["deadline"]:
         response += f"📅 <b>Дедлайн:</b> {task['deadline']}\n"
 
     response += f"📊 <b>Статус:</b> {'✅ Выполнена' if task['is_completed'] else '⏳ В работе'}\n"
@@ -509,7 +516,9 @@ async def delete_task_selected(callback: CallbackQuery):
     response += "\n<b>Вы действительно хотите удалить эту задачу?</b>"
 
     await callback.message.edit_text(response, parse_mode="HTML")
-    await callback.message.edit_reply_markup(reply_markup=get_delete_task_confirmation_keyboard(task_id))
+    await callback.message.edit_reply_markup(
+        reply_markup=get_delete_task_confirmation_keyboard(task_id)
+    )
 
 
 @router.callback_query(F.data.startswith("confirm_delete_task_"))
@@ -526,14 +535,21 @@ async def confirm_delete_task(callback: CallbackQuery):
     await callback.answer("✅ Задача удалена!")
     await callback.message.edit_text(
         "✅ <b>Задача успешно удалена!</b>\n\nНажмите кнопку чтобы вернуться к задачам:",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     # Кнопка для возврата к задачам
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Вернуться к задачам", callback_data="back_to_tasks")]
-    ])
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Вернуться к задачам", callback_data="back_to_tasks"
+                )
+            ]
+        ]
+    )
     await callback.message.edit_reply_markup(reply_markup=keyboard)
 
 
@@ -556,13 +572,17 @@ async def edit_task_field_selected(callback: CallbackQuery, state: FSMContext):
     conn.close()
 
     if field_name == "priority":
-        await callback.message.edit_text("🎯 <b>Выберите новый приоритет задачи:</b>", parse_mode="HTML")
-        await callback.message.edit_reply_markup(reply_markup=get_priority_selection_keyboard(for_edit=True, task_id=task_id))
+        await callback.message.edit_text(
+            "🎯 <b>Выберите новый приоритет задачи:</b>", parse_mode="HTML"
+        )
+        await callback.message.edit_reply_markup(
+            reply_markup=get_priority_selection_keyboard(for_edit=True, task_id=task_id)
+        )
     else:
         field_names = {
             "title": "название задачи",
             "description": "описание задачи (или 'нет' если не нужно)",
-            "deadline": "дедлайн задачи (формат: ГГГГ-ММ-ДД, или 'нет')"
+            "deadline": "дедлайн задачи (формат: ГГГГ-ММ-ДД, или 'нет')",
         }
 
         current_value = task.get(field_name, "")
@@ -571,7 +591,7 @@ async def edit_task_field_selected(callback: CallbackQuery, state: FSMContext):
             f"✏️ <b>Редактирование {field_names[field_name]}</b>\n\n"
             f"Текущее значение: <code>{current_value if current_value else 'не указано'}</code>\n\n"
             f"<b>Введите новое значение:</b>",
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await callback.message.edit_reply_markup(reply_markup=None)
 
@@ -582,8 +602,8 @@ async def edit_task_field_selected(callback: CallbackQuery, state: FSMContext):
 async def process_task_field_value(message: Message, state: FSMContext):
     """Обработка нового значения поля задачи"""
     data = await state.get_data()
-    task_id = data['task_id']
-    field_name = data['field_name']
+    task_id = data["task_id"]
+    field_name = data["field_name"]
     new_value = message.text.strip()
 
     conn = get_connection()
@@ -596,13 +616,13 @@ async def process_task_field_value(message: Message, state: FSMContext):
             else:
                 # Проверяем формат даты
                 try:
-                    datetime.strptime(new_value, '%Y-%m-%d')
+                    datetime.strptime(new_value, "%Y-%m-%d")
                 except ValueError:
                     await message.answer(
                         "❌ <b>Неверный формат даты!</b>\n"
                         "Используйте формат: ГГГГ-ММ-ДД\n"
                         "Пример: 2024-12-31",
-                        parse_mode="HTML"
+                        parse_mode="HTML",
                     )
                     return
         else:
@@ -610,30 +630,38 @@ async def process_task_field_value(message: Message, state: FSMContext):
                 new_value = None
 
         if field_name == "title":
-            cursor.execute("UPDATE tasks SET title = ? WHERE id = ?", (new_value, task_id))
+            cursor.execute(
+                "UPDATE tasks SET title = ? WHERE id = ?", (new_value, task_id)
+            )
         elif field_name == "description":
-            cursor.execute("UPDATE tasks SET description = ? WHERE id = ?", (new_value, task_id))
+            cursor.execute(
+                "UPDATE tasks SET description = ? WHERE id = ?", (new_value, task_id)
+            )
         elif field_name == "deadline":
-            cursor.execute("UPDATE tasks SET deadline = ? WHERE id = ?", (new_value, task_id))
+            cursor.execute(
+                "UPDATE tasks SET deadline = ? WHERE id = ?", (new_value, task_id)
+            )
 
         conn.commit()
 
         field_display_names = {
             "title": "Название задачи",
             "description": "Описание задачи",
-            "deadline": "Дедлайн задачи"
+            "deadline": "Дедлайн задачи",
         }
 
         await message.answer(
             f"✅ <b>{field_display_names[field_name]} успешно обновлено!</b>",
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
 
         # После обновления возвращаемся к деталям задачи
         await show_task_details(message, task_id)
 
     except Exception as e:
-        await message.answer(f"❌ <b>Ошибка при обновлении:</b>\n{str(e)}", parse_mode="HTML")
+        await message.answer(
+            f"❌ <b>Ошибка при обновлении:</b>\n{str(e)}", parse_mode="HTML"
+        )
     finally:
         conn.close()
         await state.clear()
@@ -672,7 +700,7 @@ async def back_to_tasks_handler(callback: CallbackQuery):
             END,
             deadline
         """,
-        (user_id,)
+        (user_id,),
     )
 
     active_tasks = [dict(row) for row in cursor.fetchall()]
@@ -686,7 +714,7 @@ async def back_to_tasks_handler(callback: CallbackQuery):
         ORDER BY deadline DESC
         LIMIT 10
         """,
-        (user_id,)
+        (user_id,),
     )
 
     completed_tasks = [dict(row) for row in cursor.fetchall()]
@@ -711,17 +739,15 @@ async def back_to_tasks_handler(callback: CallbackQuery):
             response += "📋 <b>Активные задачи:</b>\n\n"
 
             for task in active_tasks:
-                title = task['title']
+                title = task["title"]
                 response += f"📝 <b>{title}</b>\n"
 
-                if task['deadline']:
+                if task["deadline"]:
                     response += f"📅 <i>До: {task['deadline']}</i>\n"
 
-                priority_emoji = {
-                    'high': '🔴',
-                    'medium': '🟡',
-                    'low': '🟢'
-                }.get(task['priority'], '⚪')
+                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+                    task["priority"], "⚪"
+                )
 
                 response += f"{priority_emoji} <i>Приоритет: {task['priority']}</i>\n\n"
 
@@ -729,17 +755,17 @@ async def back_to_tasks_handler(callback: CallbackQuery):
             response += "\n🏁 <b>Завершённые задачи:</b>\n\n"
 
             for task in completed_tasks:
-                title = task['title']
+                title = task["title"]
                 response += f"✅ <b>{title}</b>\n"
 
-                if task['deadline']:
+                if task["deadline"]:
                     response += f"📅 <i>Было до: {task['deadline']}</i>\n\n"
                 else:
                     response += "\n"
 
         await callback.message.edit_text(
-            response,
-            parse_mode="HTML",
-            disable_web_page_preview=True
+            response, parse_mode="HTML", disable_web_page_preview=True
         )
-        await callback.message.edit_reply_markup(reply_markup=get_tasks_selection_keyboard(active_tasks))
+        await callback.message.edit_reply_markup(
+            reply_markup=get_tasks_selection_keyboard(active_tasks)
+        )

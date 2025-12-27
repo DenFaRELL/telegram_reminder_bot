@@ -16,6 +16,7 @@ user_current_section = {}
 
 # ==================== ОСНОВНЫЕ КОМАНДЫ ====================
 
+
 @router.message(Command("start"))
 async def cmd_start(message: Message):
     """Начало работы - главное меню"""
@@ -56,6 +57,7 @@ async def cmd_start(message: Message):
 
 # ==================== НАВИГАЦИЯ ====================
 
+
 @router.message(Command("menu"))
 @router.message(F.text == "🔙 Назад")
 async def cmd_menu(message: Message):
@@ -72,6 +74,7 @@ async def cmd_menu(message: Message):
 
 # ==================== РАЗДЕЛ РАСПИСАНИЯ ====================
 
+
 @router.message(F.text == "📅 Расписание")
 async def button_schedule_menu(message: Message):
     """Переход в раздел Расписание"""
@@ -81,6 +84,7 @@ async def button_schedule_menu(message: Message):
 
 
 # ==================== РАЗДЕЛ ЗАДАЧ ====================
+
 
 @router.message(F.text == "✅ Задачи")
 async def button_tasks_menu(message: Message):
@@ -92,6 +96,7 @@ async def button_tasks_menu(message: Message):
 
 # ==================== РАЗДЕЛ СОБЫТИЙ ====================
 
+
 @router.message(F.text == "🎯 События")
 async def button_events_menu(message: Message):
     """Переход в раздел Событий"""
@@ -100,7 +105,6 @@ async def button_events_menu(message: Message):
 
     # Показываем список событий с inline-кнопками
     await show_events_list(message, user_id)
-
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -124,6 +128,7 @@ async def button_events_menu(message: Message):
 
 # ==================== СТАТИСТИКА ====================
 
+
 @router.message(Command("stats"))
 @router.message(F.text == "📊 Статистика")
 async def cmd_stats(message: Message):
@@ -134,7 +139,10 @@ async def cmd_stats(message: Message):
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*) FROM tasks WHERE user_id = ? AND is_completed = FALSE", (user_id,))
+    cursor.execute(
+        "SELECT COUNT(*) FROM tasks WHERE user_id = ? AND is_completed = FALSE",
+        (user_id,),
+    )
     active_tasks = cursor.fetchone()[0]
     cursor.execute("SELECT COUNT(*) FROM events WHERE user_id = ?", (user_id,))
     events_count = cursor.fetchone()[0]
@@ -153,6 +161,7 @@ async def cmd_stats(message: Message):
 
 
 # ==================== ПОМОЩЬ ====================
+
 
 @router.message(Command("help"))
 @router.message(F.text == "❓ Помощь")
@@ -253,10 +262,12 @@ async def show_events_help(message: Message):
 
 # ==================== КОМАНДЫ ДЛЯ АВТОПОДСКАЗОК ====================
 
+
 @router.message(Command("add_lesson"))
 async def cmd_add_lesson_via_command(message: Message):
     """Добавление урока через команду"""
     from src.handlers.schedule import cmd_add_lesson
+
     await cmd_add_lesson(message)
 
 
@@ -278,8 +289,7 @@ async def cmd_add_task_via_command(message: Message):
 async def cmd_add_event_via_command(message: Message):
     """Добавление события через команду"""
     await message.answer(
-        "🎯 <b>Добавление события</b>\n\n"
-        "Эта функция скоро будет доступна!",
+        "🎯 <b>Добавление события</b>\n\nЭта функция скоро будет доступна!",
         reply_markup=get_main_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )

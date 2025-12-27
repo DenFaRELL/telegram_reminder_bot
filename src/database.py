@@ -1,6 +1,9 @@
-# src/database.py
+# run.py
+import asyncio
 import os
 import sqlite3
+import sys  # src/database.py
+from datetime import datetime
 
 
 def get_connection():
@@ -8,6 +11,10 @@ def get_connection():
     db_path = os.path.join(os.path.dirname(__file__), "..", "bot.db")
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+
+    # Включаем foreign keys
+    conn.execute("PRAGMA foreign_keys = ON")
+
     return conn
 
 
@@ -44,7 +51,7 @@ def init_database():
             room TEXT,
             teacher TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (telegram_id)
+            FOREIGN KEY (user_id) REFERENCES users (telegram_id) ON DELETE CASCADE
         )
     """
     )
@@ -61,7 +68,7 @@ def init_database():
             priority TEXT CHECK(priority IN ('high', 'medium', 'low')),
             is_completed BOOLEAN DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (telegram_id)
+            FOREIGN KEY (user_id) REFERENCES users (telegram_id) ON DELETE CASCADE
         )
     """
     )
@@ -79,7 +86,7 @@ def init_database():
             is_recurring BOOLEAN DEFAULT 0,
             recurrence_rule TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (telegram_id)
+            FOREIGN KEY (user_id) REFERENCES users (telegram_id) ON DELETE CASCADE
         )
     """
     )
@@ -100,5 +107,34 @@ def init_database():
     print("✅ База данных инициализирована")
 
 
+def fix_invalid_dates():
+    """Исправление неверных дат в базе данных"""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Находим задачи с некорректными датами
+    cursor.execute("SELECT id, deadline FROM tasks WHERE deadline IS NOT NULL")
+    tasks = cursor.fetchall()
+
+    fixed_count = 0
+    for task in tasks:
+        task_id = task["id"]
+        deadline = task["deadline"]
+
+        try:
+            # Пробуем преобразовать дату
+            datetime.strptime(deadline, "%Y-%m-%d")
+        except (ValueError, TypeError):
+            # Если дата некорректная, удаляем её
+            print(f"Исправление некорректной даты в задаче {task_id}: {deadline}")
+            cursor.execute("UPDATE tasks SET deadline = NULL WHERE id = ?", (task_id,))
+            fixed_count += 1
+
+    conn.commit()
+    conn.close()
+    print(f"✅ Некорректные даты исправлены. Исправлено записей: {fixed_count}")
+
+
 if __name__ == "__main__":
     init_database()
+    fix_invalid_dates()

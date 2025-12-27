@@ -41,7 +41,7 @@ async def show_events_list(message: Message, user_id):
         ORDER BY event_datetime
         LIMIT 20
         """,
-        (user_id,)
+        (user_id,),
     )
 
     events = [dict(row) for row in cursor.fetchall()]
@@ -64,19 +64,19 @@ async def show_events_list(message: Message, user_id):
         response += "<i>Выберите событие для просмотра деталей:</i>\n\n"
 
         for i, event in enumerate(events[:5], 1):
-            title = event['title']
-            event_datetime = event['event_datetime']
+            title = event["title"]
+            event_datetime = event["event_datetime"]
 
             # Форматируем дату и время
             try:
-                dt = datetime.strptime(event_datetime, '%Y-%m-%d %H:%M')
-                formatted_date = dt.strftime('%d.%m.%Y %H:%M')
+                dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
+                formatted_date = dt.strftime("%d.%m.%Y %H:%M")
             except:
                 formatted_date = event_datetime
 
             response += f"<b>{i}.</b> {formatted_date} - {title}\n"
 
-            if event['is_recurring']:
+            if event["is_recurring"]:
                 response += "🔄 <i>Повторяющееся</i>\n"
 
             response += "\n"
@@ -107,30 +107,32 @@ async def show_event_details(message_or_callback, event_id):
     response = "🎯 <b>Детали события:</b>\n\n"
     response += f"📝 <b>Название:</b> {event['title']}\n"
 
-    if event['description']:
+    if event["description"]:
         response += f"📄 <b>Описание:</b> {event['description']}\n"
 
     # Форматируем дату и время
-    event_datetime = event['event_datetime']
+    event_datetime = event["event_datetime"]
     try:
-        dt = datetime.strptime(event_datetime, '%Y-%m-%d %H:%M')
-        formatted_datetime = dt.strftime('%d.%m.%Y %H:%M')
-        day_of_week = dt.strftime('%A')
+        dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
+        formatted_datetime = dt.strftime("%d.%m.%Y %H:%M")
+        day_of_week = dt.strftime("%A")
         response += f"📅 <b>Дата и время:</b> {formatted_datetime} ({day_of_week})\n"
     except:
         response += f"📅 <b>Дата и время:</b> {event_datetime}\n"
 
-    if event['location']:
+    if event["location"]:
         response += f"📍 <b>Место:</b> {event['location']}\n"
 
-    if event['is_recurring']:
+    if event["is_recurring"]:
         recurrence_rules = {
-            'daily': 'Ежедневно',
-            'weekly': 'Еженедельно',
-            'monthly': 'Ежемесячно',
-            'yearly': 'Ежегодно'
+            "daily": "Ежедневно",
+            "weekly": "Еженедельно",
+            "monthly": "Ежемесячно",
+            "yearly": "Ежегодно",
         }
-        recurrence = recurrence_rules.get(event['recurrence_rule'], event['recurrence_rule'])
+        recurrence = recurrence_rules.get(
+            event["recurrence_rule"], event["recurrence_rule"]
+        )
         response += f"🔄 <b>Повторяемость:</b> {recurrence}\n"
 
     # Определяем куда отправлять ответ
@@ -138,14 +140,14 @@ async def show_event_details(message_or_callback, event_id):
         await message_or_callback.message.answer(
             response,
             reply_markup=get_event_detail_keyboard(event_id),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await message_or_callback.answer()
     else:
         await message_or_callback.answer(
             response,
             reply_markup=get_event_detail_keyboard(event_id),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
 
 
@@ -153,6 +155,7 @@ async def show_event_details(message_or_callback, event_id):
 async def events_help_handler(callback: CallbackQuery):
     """Помощь по событиям"""
     from src.handlers.main import show_events_help
+
     await callback.answer()
     await show_events_help(callback.message)
 
@@ -165,9 +168,8 @@ async def add_event_handler(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
     await callback.message.answer(
-        "🎯 <b>Добавление нового события</b>\n\n"
-        "Введите название события:",
-        parse_mode="HTML"
+        "🎯 <b>Добавление нового события</b>\n\nВведите название события:",
+        parse_mode="HTML",
     )
 
     await state.set_state(EventStates.waiting_for_title)
@@ -180,7 +182,7 @@ async def process_event_title(message: Message, state: FSMContext):
 
     await message.answer(
         "📄 <b>Введите описание события (или напишите 'нет' если не нужно):</b>",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await state.set_state(EventStates.waiting_for_description)
@@ -198,7 +200,7 @@ async def process_event_description(message: Message, state: FSMContext):
     await message.answer(
         "📅 <b>Введите дату и время события (формат: ГГГГ-ММ-ДД ЧЧ:ММ):</b>\n"
         "<i>Пример: 2024-12-31 18:30</i>",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await state.set_state(EventStates.waiting_for_datetime)
@@ -211,13 +213,13 @@ async def process_event_datetime(message: Message, state: FSMContext):
 
     # Проверяем формат даты и времени
     try:
-        datetime.strptime(event_datetime, '%Y-%m-%d %H:%M')
+        datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
     except ValueError:
         await message.answer(
             "❌ <b>Неверный формат даты и времени!</b>\n"
             "Используйте формат: ГГГГ-ММ-ДД ЧЧ:ММ\n"
             "Пример: 2024-12-31 18:30",
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         return
 
@@ -225,7 +227,7 @@ async def process_event_datetime(message: Message, state: FSMContext):
 
     await message.answer(
         "📍 <b>Введите место проведения события (или напишите 'нет'):</b>",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await state.set_state(EventStates.waiting_for_location)
@@ -243,7 +245,7 @@ async def process_event_location(message: Message, state: FSMContext):
     await message.answer(
         "🔄 <b>Выберите повторяемость события:</b>",
         reply_markup=get_recurrence_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     await state.set_state(EventStates.waiting_for_recurrence)
@@ -271,21 +273,21 @@ async def select_weekday_handler(callback: CallbackQuery, state: FSMContext):
 
     # Показываем какие дни выбраны
     days_names = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-    selected_days_text = ", ".join([days_names[d-1] for d in sorted(selected_days)])
+    selected_days_text = ", ".join([days_names[d - 1] for d in sorted(selected_days)])
 
     if selected_days:
         await callback.message.edit_text(
             f"📅 <b>Выбранные дни:</b> {selected_days_text}\n\n"
             f"<b>Продолжайте выбирать дни или нажмите '✅ Готово':</b>",
             reply_markup=get_weekday_selection_keyboard(),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
     else:
         await callback.message.edit_text(
             "📅 <b>Выберите дни недели для повторения:</b>\n"
             "<i>Можно выбрать несколько дней</i>",
             reply_markup=get_weekday_selection_keyboard(),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
 
 
@@ -336,8 +338,8 @@ async def save_event(callback, data, recurrence_type, state, recurrence_rule=Non
                 data["event_datetime"],
                 data.get("location"),
                 is_recurring,
-                recurrence_rule
-            )
+                recurrence_rule,
+            ),
         )
         conn.commit()
 
@@ -357,7 +359,7 @@ async def save_event(callback, data, recurrence_type, state, recurrence_rule=Non
             "daily": "Ежедневно",
             "weekly": "Еженедельно",
             "monthly": "Ежемесячно",
-            "yearly": "Ежегодно"
+            "yearly": "Ежегодно",
         }
         response += f"<b>Повторяемость:</b> {recurrence_texts.get(recurrence_type, recurrence_type)}\n"
 
@@ -365,20 +367,26 @@ async def save_event(callback, data, recurrence_type, state, recurrence_rule=Non
 
         # Показываем кнопку для возврата к списку событий
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎯 Вернуться к событиям", callback_data="back_to_events")]
-        ])
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🎯 Вернуться к событиям", callback_data="back_to_events"
+                    )
+                ]
+            ]
+        )
 
         await callback.message.answer(
             "<b>Нажмите кнопку чтобы вернуться к событиям:</b>",
             reply_markup=keyboard,
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
 
     except Exception as e:
         await callback.message.answer(
-            f"❌ <b>Ошибка при сохранении события:</b>\n{str(e)}",
-            parse_mode="HTML"
+            f"❌ <b>Ошибка при сохранении события:</b>\n{str(e)}", parse_mode="HTML"
         )
 
     finally:
@@ -390,6 +398,7 @@ async def save_event(callback, data, recurrence_type, state, recurrence_rule=Non
 
 
 # ==================== ОБРАБОТКА ДЕТАЛЕЙ, РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ СОБЫТИЙ ====================
+
 
 @router.callback_query(F.data.startswith("view_event_"))
 async def view_event_handler(callback: CallbackQuery):
@@ -418,21 +427,23 @@ async def edit_event_selected(callback: CallbackQuery):
     response = f"✏️ <b>Редактирование события:</b>\n\n"
     response += f"📝 <b>Название:</b> {event['title']}\n"
 
-    if event['description']:
+    if event["description"]:
         response += f"📄 <b>Описание:</b> {event['description']}\n"
 
     response += f"📅 <b>Дата и время:</b> {event['event_datetime']}\n"
 
-    if event['location']:
+    if event["location"]:
         response += f"📍 <b>Место:</b> {event['location']}\n"
 
-    if event['is_recurring']:
+    if event["is_recurring"]:
         response += f"🔄 <b>Повторяемость:</b> {event['recurrence_rule']}\n"
 
     response += "\n<b>Выберите что изменить:</b>"
 
     await callback.message.edit_text(response, parse_mode="HTML")
-    await callback.message.edit_reply_markup(reply_markup=get_edit_event_keyboard(event_id))
+    await callback.message.edit_reply_markup(
+        reply_markup=get_edit_event_keyboard(event_id)
+    )
 
 
 @router.callback_query(F.data.startswith("delete_event_"))
@@ -455,18 +466,20 @@ async def delete_event_selected(callback: CallbackQuery):
     response = f"🗑️ <b>Удаление события:</b>\n\n"
     response += f"📝 <b>Название:</b> {event['title']}\n"
 
-    if event['description']:
+    if event["description"]:
         response += f"📄 <b>Описание:</b> {event['description']}\n"
 
     response += f"📅 <b>Дата и время:</b> {event['event_datetime']}\n"
 
-    if event['location']:
+    if event["location"]:
         response += f"📍 <b>Место:</b> {event['location']}\n"
 
     response += "\n<b>Вы действительно хотите удалить это событие?</b>"
 
     await callback.message.edit_text(response, parse_mode="HTML")
-    await callback.message.edit_reply_markup(reply_markup=get_delete_event_confirmation_keyboard(event_id))
+    await callback.message.edit_reply_markup(
+        reply_markup=get_delete_event_confirmation_keyboard(event_id)
+    )
 
 
 @router.callback_query(F.data.startswith("confirm_delete_event_"))
@@ -483,14 +496,21 @@ async def confirm_delete_event(callback: CallbackQuery):
     await callback.answer("✅ Событие удалено!")
     await callback.message.edit_text(
         "✅ <b>Событие успешно удалено!</b>\n\nНажмите кнопку чтобы вернуться к событиям:",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
     # Кнопка для возврата к событиям
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎯 Вернуться к событиям", callback_data="back_to_events")]
-    ])
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🎯 Вернуться к событиям", callback_data="back_to_events"
+                )
+            ]
+        ]
+    )
     await callback.message.edit_reply_markup(reply_markup=keyboard)
 
 
@@ -513,14 +533,18 @@ async def edit_event_field_selected(callback: CallbackQuery, state: FSMContext):
     conn.close()
 
     if field_name == "recurrence":
-        await callback.message.edit_text("🔄 <b>Выберите новую повторяемость события:</b>", parse_mode="HTML")
-        await callback.message.edit_reply_markup(reply_markup=get_recurrence_keyboard(for_edit=True, event_id=event_id))
+        await callback.message.edit_text(
+            "🔄 <b>Выберите новую повторяемость события:</b>", parse_mode="HTML"
+        )
+        await callback.message.edit_reply_markup(
+            reply_markup=get_recurrence_keyboard(for_edit=True, event_id=event_id)
+        )
     else:
         field_names = {
             "title": "название события",
             "description": "описание события (или 'нет' если не нужно)",
             "datetime": "дату и время события (формат: ГГГГ-ММ-ДД ЧЧ:ММ)",
-            "location": "место проведения события (или 'нет')"
+            "location": "место проведения события (или 'нет')",
         }
 
         current_value = event.get(field_name, "")
@@ -529,7 +553,7 @@ async def edit_event_field_selected(callback: CallbackQuery, state: FSMContext):
             f"✏️ <b>Редактирование {field_names[field_name]}</b>\n\n"
             f"Текущее значение: <code>{current_value if current_value else 'не указано'}</code>\n\n"
             f"<b>Введите новое значение:</b>",
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await callback.message.edit_reply_markup(reply_markup=None)
 
@@ -553,21 +577,28 @@ async def select_new_recurrence(callback: CallbackQuery, state: FSMContext):
 
     cursor.execute(
         "UPDATE events SET is_recurring = ?, recurrence_rule = ? WHERE id = ?",
-        (is_recurring, recurrence_rule, event_id)
+        (is_recurring, recurrence_rule, event_id),
     )
     conn.commit()
     conn.close()
 
     await callback.message.edit_text(
-        f"✅ <b>Повторяемость события обновлена!</b>",
-        parse_mode="HTML"
+        f"✅ <b>Повторяемость события обновлена!</b>", parse_mode="HTML"
     )
 
     # Показываем кнопку для возврата к событию
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎯 Вернуться к событию", callback_data=f"back_to_event_{event_id}")]
-    ])
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🎯 Вернуться к событию",
+                    callback_data=f"back_to_event_{event_id}",
+                )
+            ]
+        ]
+    )
     await callback.message.edit_reply_markup(reply_markup=keyboard)
 
     await state.clear()
@@ -577,8 +608,8 @@ async def select_new_recurrence(callback: CallbackQuery, state: FSMContext):
 async def process_event_field_value(message: Message, state: FSMContext):
     """Обработка нового значения поля события"""
     data = await state.get_data()
-    event_id = data['event_id']
-    field_name = data['field_name']
+    event_id = data["event_id"]
+    field_name = data["field_name"]
     new_value = message.text.strip()
 
     conn = get_connection()
@@ -588,13 +619,13 @@ async def process_event_field_value(message: Message, state: FSMContext):
         if field_name == "datetime":
             # Проверяем формат даты и времени
             try:
-                datetime.strptime(new_value, '%Y-%m-%d %H:%M')
+                datetime.strptime(new_value, "%Y-%m-%d %H:%M")
             except ValueError:
                 await message.answer(
                     "❌ <b>Неверный формат даты и времени!</b>\n"
                     "Используйте формат: ГГГГ-ММ-ДД ЧЧ:ММ\n"
                     "Пример: 2024-12-31 18:30",
-                    parse_mode="HTML"
+                    parse_mode="HTML",
                 )
                 return
         else:
@@ -602,13 +633,22 @@ async def process_event_field_value(message: Message, state: FSMContext):
                 new_value = None
 
         if field_name == "title":
-            cursor.execute("UPDATE events SET title = ? WHERE id = ?", (new_value, event_id))
+            cursor.execute(
+                "UPDATE events SET title = ? WHERE id = ?", (new_value, event_id)
+            )
         elif field_name == "description":
-            cursor.execute("UPDATE events SET description = ? WHERE id = ?", (new_value, event_id))
+            cursor.execute(
+                "UPDATE events SET description = ? WHERE id = ?", (new_value, event_id)
+            )
         elif field_name == "datetime":
-            cursor.execute("UPDATE events SET event_datetime = ? WHERE id = ?", (new_value, event_id))
+            cursor.execute(
+                "UPDATE events SET event_datetime = ? WHERE id = ?",
+                (new_value, event_id),
+            )
         elif field_name == "location":
-            cursor.execute("UPDATE events SET location = ? WHERE id = ?", (new_value, event_id))
+            cursor.execute(
+                "UPDATE events SET location = ? WHERE id = ?", (new_value, event_id)
+            )
 
         conn.commit()
 
@@ -616,19 +656,21 @@ async def process_event_field_value(message: Message, state: FSMContext):
             "title": "Название события",
             "description": "Описание события",
             "datetime": "Дата и время события",
-            "location": "Место проведения события"
+            "location": "Место проведения события",
         }
 
         await message.answer(
             f"✅ <b>{field_display_names[field_name]} успешно обновлено!</b>",
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
 
         # После обновления возвращаемся к деталям события
         await show_event_details(message, event_id)
 
     except Exception as e:
-        await message.answer(f"❌ <b>Ошибка при обновлении:</b>\n{str(e)}", parse_mode="HTML")
+        await message.answer(
+            f"❌ <b>Ошибка при обновлении:</b>\n{str(e)}", parse_mode="HTML"
+        )
     finally:
         conn.close()
         await state.clear()
@@ -656,20 +698,20 @@ async def events_page_handler(callback: CallbackQuery):
     response = "🎯 <b>Ваши ближайшие события:</b>\n\n"
     response += "<i>Выберите событие для просмотра деталей:</i>\n\n"
 
-    for i, event in enumerate(events[start_index:start_index+5], 1):
-        title = event['title']
-        event_datetime = event['event_datetime']
+    for i, event in enumerate(events[start_index : start_index + 5], 1):
+        title = event["title"]
+        event_datetime = event["event_datetime"]
 
         # Форматируем дату и время
         try:
-            dt = datetime.strptime(event_datetime, '%Y-%m-%d %H:%M')
-            formatted_date = dt.strftime('%d.%m.%Y %H:%M')
+            dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
+            formatted_date = dt.strftime("%d.%m.%Y %H:%M")
         except:
             formatted_date = event_datetime
 
         response += f"<b>{start_index + i}.</b> {formatted_date} - {title}\n"
 
-        if event['is_recurring']:
+        if event["is_recurring"]:
             response += "🔄 <i>Повторяющееся</i>\n"
 
         response += "\n"
@@ -678,7 +720,9 @@ async def events_page_handler(callback: CallbackQuery):
         response,
         parse_mode="HTML",
     )
-    await callback.message.edit_reply_markup(reply_markup=get_events_selection_keyboard(events, start_index))
+    await callback.message.edit_reply_markup(
+        reply_markup=get_events_selection_keyboard(events, start_index)
+    )
     await callback.answer()
 
 
@@ -702,7 +746,7 @@ async def back_to_events_handler(callback: CallbackQuery):
         ORDER BY event_datetime
         LIMIT 20
         """,
-        (user_id,)
+        (user_id,),
     )
 
     events = [dict(row) for row in cursor.fetchall()]
@@ -719,25 +763,27 @@ async def back_to_events_handler(callback: CallbackQuery):
             response,
             parse_mode="HTML",
         )
-        await callback.message.edit_reply_markup(reply_markup=get_events_list_keyboard())
+        await callback.message.edit_reply_markup(
+            reply_markup=get_events_list_keyboard()
+        )
     else:
         response = "🎯 <b>Ваши ближайшие события:</b>\n\n"
         response += "<i>Выберите событие для просмотра деталей:</i>\n\n"
 
         for i, event in enumerate(events[:5], 1):
-            title = event['title']
-            event_datetime = event['event_datetime']
+            title = event["title"]
+            event_datetime = event["event_datetime"]
 
             # Форматируем дату и время
             try:
-                dt = datetime.strptime(event_datetime, '%Y-%m-%d %H:%M')
-                formatted_date = dt.strftime('%d.%m.%Y %H:%M')
+                dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
+                formatted_date = dt.strftime("%d.%m.%Y %H:%M")
             except:
                 formatted_date = event_datetime
 
             response += f"<b>{i}.</b> {formatted_date} - {title}\n"
 
-            if event['is_recurring']:
+            if event["is_recurring"]:
                 response += "🔄 <i>Повторяющееся</i>\n"
 
             response += "\n"
@@ -746,4 +792,6 @@ async def back_to_events_handler(callback: CallbackQuery):
             response,
             parse_mode="HTML",
         )
-        await callback.message.edit_reply_markup(reply_markup=get_events_selection_keyboard(events))
+        await callback.message.edit_reply_markup(
+            reply_markup=get_events_selection_keyboard(events)
+        )
