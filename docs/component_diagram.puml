@@ -1,0 +1,56 @@
+@startuml component_diagram
+
+package "Telegram-бот «Напоминалка»" {
+  [run.py] as Run
+  [bot.py] as Bot
+  [Dispatcher] as Disp
+
+  package "Обработчики" {
+    [main.py] as Main
+    [schedule.py] as Schedule
+    [tasks.py] as Tasks
+    [events.py] as Events
+  }
+
+  package "Сервисный слой" {
+    [keyboards.py] as Keyboards
+    [states.py] as States
+    [database.py] as Database
+  }
+
+  database "SQLite" {
+    folder "users" as Users
+    folder "schedule" as ScheduleDB
+    folder "tasks" as TasksDB
+    folder "events" as EventsDB
+  }
+
+  Run --> Bot : "запускает"
+  Bot --> Disp : "управляет"
+  Disp --> Main : "регистрирует"
+  Disp --> Schedule : "регистрирует"
+  Disp --> Tasks : "регистрирует"
+  Disp --> Events : "регистрирует"
+
+  Main --> Keyboards : "использует"
+  Schedule --> Keyboards : "использует"
+  Tasks --> Keyboards : "использует"
+  Events --> Keyboards : "использует"
+
+  Main --> States : "использует"
+  Schedule --> States : "использует"
+  Tasks --> States : "использует"
+  Events --> States : "использует"
+
+  Main --> Database : "использует"
+  Schedule --> Database : "использует"
+  Tasks --> Database : "использует"
+  Events --> Database : "использует"
+
+  Database --> Users : "CRUD"
+  Database --> ScheduleDB : "CRUD"
+  Database --> TasksDB : "CRUD"
+  Database --> EventsDB : "CRUD"
+}
+
+@enduml

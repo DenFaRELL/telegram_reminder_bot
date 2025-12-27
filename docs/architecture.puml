@@ -1,0 +1,60 @@
+@startuml UML Диаграмма компонентов: Telegram-бот "Напоминалка"
+
+package "Точка входа" {
+  component "run.py" as Run
+}
+
+package "Ядро системы" {
+  component "bot.py" as Bot
+  component "Dispatcher" as Disp
+}
+
+package "Обработчики команд" {
+  component "handlers/main.py" as Main
+  component "handlers/schedule.py" as Schedule
+  component "handlers/tasks.py" as Tasks
+  component "handlers/events.py" as Events
+}
+
+package "Сервисный слой" {
+  component "keyboards.py" as Keyboards
+  component "states.py" as States
+  component "database.py" as Database
+}
+
+database "База данных SQLite" {
+  component "Таблица users" as Users
+  component "Таблица schedule" as ScheduleDB
+  component "Таблица tasks" as TasksDB
+  component "Таблица events" as EventsDB
+}
+
+' Связи
+Run --> Bot : "запускает"
+Bot --> Disp : "создает"
+Disp --> Main : "регистрирует"
+Disp --> Schedule : "регистрирует"
+Disp --> Tasks : "регистрирует"
+Disp --> Events : "регистрирует"
+
+Main --> Keyboards : "использует"
+Schedule --> Keyboards : "использует"
+Tasks --> Keyboards : "использует"
+Events --> Keyboards : "использует"
+
+Main --> States : "использует"
+Schedule --> States : "использует"
+Tasks --> States : "использует"
+Events --> States : "использует"
+
+Main --> Database : "вызывает"
+Schedule --> Database : "вызывает"
+Tasks --> Database : "вызывает"
+Events --> Database : "вызывает"
+
+Database --> Users : "CRUD"
+Database --> ScheduleDB : "CRUD"
+Database --> TasksDB : "CRUD"
+Database --> EventsDB : "CRUD"
+
+@enduml
