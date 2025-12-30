@@ -1,5 +1,6 @@
 # src/handlers/tasks/edit.py - ИСПРАВЛЕННЫЙ КОД
 
+import asyncio
 import logging
 from datetime import datetime
 
@@ -210,8 +211,6 @@ async def handle_edit_task_field(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Критическая ошибка при редактировании")
 
 
-# src/handlers/tasks/edit.py - ОСТАВЬТЕ ТОЛЬКО ЭТОТ обработчик:
-
 @router.callback_query(F.data.regexp(r'^select_priority_(high|medium|low)_\d+$'))
 async def handle_select_priority_for_edit(callback: CallbackQuery):
     """Выбран новый приоритет задачи (только для редактирования - с task_id)"""
@@ -316,6 +315,7 @@ async def handle_task_field_value_input(message: Message, state: FSMContext):
 
 # ==================== ЗАВЕРШЕНИЕ ЗАДАЧИ ====================
 
+
 @router.callback_query(F.data.startswith("complete_task_"))
 async def handle_complete_task(callback: CallbackQuery):
     """Завершить задачу"""
@@ -325,16 +325,37 @@ async def handle_complete_task(callback: CallbackQuery):
 
         await callback.answer()
 
+        # Обновляем задачу
         success, msg = update_task(task_id, "complete", True)
+
         if success:
+            logger.info(f"Задача {task_id} успешно завершена")
+
+            # Отправляем подтверждение
             await callback.message.answer("✅ Задача завершена!")
 
-            # Показываем обновленный список задач
+            # Удаляем предыдущее сообщение с деталями задачи
+            try:
+                await callback.message.delete()
+            except:
+                pass
+
+            # Показываем ОБНОВЛЕННЫЙ список задач
             user_id = callback.from_user.id
+
+            # Импортируем здесь, чтобы избежать циклического импорта
             from .view import show_tasks_list
+
+            # Ждем немного, чтобы сообщение "Задача завершена!" успело отправиться
+            await asyncio.sleep(0.5)
+
+            # Показываем обновленный список
             await show_tasks_list(callback.message, user_id)
+
         else:
+            logger.error(f"Не удалось завершить задачу {task_id}: {msg}")
             await callback.message.answer(f"❌ <b>{msg}</b>", parse_mode="HTML")
+
     except Exception as e:
-        logger.error(f"Ошибка в handle_complete_task: {e}")
+        logger.error(f"Ошибка в handle_complete_task: {e}", exc_info=True)
         await callback.answer("❌ Ошибка при завершении задачи")

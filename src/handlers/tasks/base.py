@@ -149,7 +149,6 @@ def get_user_tasks(user_id: int, only_active=True):
     cursor = conn.cursor()
 
     if only_active:
-        # ТОЛЬКО АКТИВНЫЕ (не завершенные)
         cursor.execute(
             """
             SELECT id, title, description, deadline, priority, is_completed
@@ -167,13 +166,23 @@ def get_user_tasks(user_id: int, only_active=True):
             (user_id,),
         )
     else:
-        # ВСЕ задачи
         cursor.execute(
             """
-            SELECT id, title, description, deadline, priority, is_completed
+            SELECT id, title, description, deadline, priority, is_completed, created_at
             FROM tasks
             WHERE user_id = ?
-            ORDER BY is_completed, deadline
+            ORDER BY
+                is_completed,  -- Сначала активные
+                CASE WHEN is_completed = 0 THEN
+                    CASE priority
+                        WHEN 'high' THEN 1
+                        WHEN 'medium' THEN 2
+                        WHEN 'low' THEN 3
+                        ELSE 4
+                    END
+                ELSE 0 END,
+                CASE WHEN is_completed = 0 THEN deadline ELSE created_at END,
+                id DESC  -- Новые задачи первыми
             """,
             (user_id,),
         )
@@ -182,9 +191,6 @@ def get_user_tasks(user_id: int, only_active=True):
     conn.close()
 
     logger.info(f"Загружено задач для пользователя {user_id}: {len(tasks)} (only_active={only_active})")
-    for task in tasks:
-        logger.info(f"Задача {task['id']}: {task['title']}, completed={task['is_completed']}")
-
     return tasks
 
 

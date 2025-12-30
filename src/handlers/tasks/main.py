@@ -87,12 +87,16 @@ async def handle_cmd_my_tasks(message: Message):
 
 # ==================== ЭКСПОРТИРУЕМЫЕ ФУНКЦИИ ====================
 
+
 async def show_tasks_section(message: Message, user_id: int):
     """Показать задачи - экспортированная функция для главного меню"""
     try:
         logger.info(f"Показать раздел задач. Пользователь: {user_id}")
 
+        # Импортируем здесь, чтобы избежать циклического импорта
+        from .view import show_tasks_list
         await show_tasks_list(message, user_id)
+
     except Exception as e:
-        logger.error(f"Ошибка в show_tasks_section: {e}")
+        logger.error(f"Ошибка в show_tasks_section: {e}", exc_info=True)
         await message.answer("❌ Ошибка при загрузке раздела задач")
