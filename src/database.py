@@ -1,8 +1,8 @@
-# run.py
+# src/database.py
 import asyncio
 import os
 import sqlite3
-import sys  # src/database.py
+import sys
 from datetime import datetime
 
 

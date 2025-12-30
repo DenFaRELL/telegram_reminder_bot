@@ -1,9 +1,12 @@
 # src/states.py
+"""Состояния для FSM"""
+
 from aiogram.fsm.state import State, StatesGroup
 
+# ==================== СОСТОЯНИЯ ДЛЯ РАСПИСАНИЯ ====================
 
-# Состояния для добавления урока
 class AddLessonStates(StatesGroup):
+    """Состояния для добавления урока"""
     waiting_for_subject = State()
     waiting_for_time = State()
     waiting_for_build = State()
@@ -11,26 +14,30 @@ class AddLessonStates(StatesGroup):
     waiting_for_teacher = State()
 
 
-# Состояния для редактирования урока
 class EditLessonStates(StatesGroup):
+    """Состояния для редактирования урока"""
     waiting_for_field_value = State()
 
 
-# Состояния для задач
+# ==================== СОСТОЯНИЯ ДЛЯ ЗАДАЧ ====================
+
 class TaskStates(StatesGroup):
+    """Состояния для добавления задачи"""
     waiting_for_title = State()
     waiting_for_description = State()
     waiting_for_deadline = State()
     waiting_for_priority = State()
 
 
-# Состояния для редактирования задач
 class EditTaskStates(StatesGroup):
+    """Состояния для редактирования задачи"""
     waiting_for_field_value = State()
 
 
-# Состояния для событий
+# ==================== СОСТОЯНИЯ ДЛЯ СОБЫТИЙ ====================
+
 class EventStates(StatesGroup):
+    """Состояния для добавления события"""
     waiting_for_title = State()
     waiting_for_description = State()
     waiting_for_datetime = State()
@@ -38,6 +45,6 @@ class EventStates(StatesGroup):
     waiting_for_recurrence = State()
 
 
-# Состояния для редактирования событий
 class EditEventStates(StatesGroup):
+    """Состояния для редактирования события"""
     waiting_for_field_value = State()

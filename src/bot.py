@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -25,27 +26,21 @@ bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
+# Импортируем и подключаем роутеры
+try:
+    from src.handlers import events_router, main_router, schedule_router, tasks_router
 
-def setup_routers():
-    """Настройка роутеров - вызывается один раз"""
-    # Импортируем роутеры здесь, чтобы избежать циклических импортов
-    from src.handlers.main import router as main_router
-    from src.handlers.schedule import router as schedule_router
-    from src.handlers.tasks import router as tasks_router
-    from src.handlers.events import router as events_router
-
-    # Подключаем роутеры
     dp.include_router(main_router)
     dp.include_router(schedule_router)
     dp.include_router(tasks_router)
     dp.include_router(events_router)
 
+    logging.info("✅ Роутеры успешно подключены")
 
-# Настраиваем роутеры при импорте модуля
-setup_routers()
-
-
-# ==================== ЗАПУСК ====================
+except ImportError as e:
+    logging.error(f"❌ Ошибка импорта роутеров: {e}")
+    logging.error("Проверьте структуру файлов и импорты")
+    sys.exit(1)
 
 
 async def main():

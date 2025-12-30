@@ -1,18 +1,29 @@
 # src/handlers/main.py
 from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 
+# Импортируем функции для показа разделов
 from src.database import get_connection
-from src.handlers.events import show_events_list
-from src.handlers.schedule import show_schedule
-from src.handlers.tasks import show_tasks_list
+from src.handlers.events.main import router as events_router
+from src.handlers.events.view import show_events_list
+from src.handlers.schedule.main import router as schedule_router
+from src.handlers.schedule.main import show_schedule
+from src.handlers.tasks.main import router as tasks_router
+from src.handlers.tasks.main import show_tasks_section
 from src.keyboards import get_main_keyboard
 
 router = Router()
 
 # Словарь для хранения текущего раздела пользователя
 user_current_section = {}
+
+def register_routers(dp):
+    dp.include_router(schedule_router)
+    dp.include_router(tasks_router)
+    dp.include_router(events_router)
+
 
 # ==================== ОСНОВНЫЕ КОМАНДЫ ====================
 
@@ -91,7 +102,7 @@ async def button_tasks_menu(message: Message):
     """Переход в раздел Задачи"""
     user_id = message.from_user.id
     user_current_section[user_id] = "tasks"
-    await show_tasks_list(message, user_id)
+    await show_tasks_section(message, user_id)
 
 
 # ==================== РАЗДЕЛ СОБЫТИЙ ====================
@@ -102,28 +113,7 @@ async def button_events_menu(message: Message):
     """Переход в раздел Событий"""
     user_id = message.from_user.id
     user_current_section[user_id] = "events"
-
-    # Показываем список событий с inline-кнопками
     await show_events_list(message, user_id)
-
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM events WHERE user_id = ?", (user_id,))
-    events_count = cursor.fetchone()[0]
-    conn.close()
-
-    if events_count == 0:
-        response = "🎯 <b>У вас пока нет событий!</b>\n\nДобавьте первое событие командой /add_event"
-    else:
-        response = f"🎯 <b>Раздел событий</b>\n\n"
-        response += f"📊 <b>Статистика:</b>\n"
-        response += f"• Всего событий: {events_count}\n\n"
-        response += "<b>Доступные команды:</b>\n"
-        response += "• /show_events - показать все события\n"
-        response += "• /add_event - добавить новое событие\n"
-        response += "• /upcoming_events - ближайшие события"
-
-    await message.answer(response, reply_markup=get_main_keyboard(), parse_mode="HTML")
 
 
 # ==================== СТАТИСТИКА ====================
@@ -185,17 +175,13 @@ async def show_main_help(message: Message):
     await message.answer(
         "🆘 <b>Общая справка:</b>\n\n"
         "<b>Основные команды:</b>\n"
-        "/start - начать работу с ботом\n"
+        "/start - начать работы с ботом\n"
         "/menu - вернуться в главное меню\n"
-        "/add_lesson - добавить новый урок\n"
-        "/add_task - добавить новую задачу\n"
-        "/add_event - добавить новое событие\n"
         "/stats - статистика\n\n"
         "<b>Основные разделы:</b>\n"
         "• <b>Расписание</b> - управление расписанием занятий\n"
         "• <b>Задачи</b> - управление задачами и дедлайнами\n"
-        "• <b>События</b> - управление событиями и напоминаниями\n"
-        "• <b>Статистика</b> - ваша активность",
+        "• <b>События</b> - управление событиями и напоминаниями",
         reply_markup=get_main_keyboard(),
         parse_mode="HTML",
     )
@@ -205,18 +191,15 @@ async def show_schedule_help(message: Message):
     """Помощь по разделу расписания"""
     await message.answer(
         "📚 <b>Помощь по разделу 'Расписание':</b>\n\n"
-        "<b>Основные команды:</b>\n"
-        "/add_lesson - добавить новый урок\n"
-        "/edit_lesson - редактировать существующий урок\n"
-        "/delete_lesson - удалить урок\n\n"
         "<b>Как добавить урок:</b>\n"
-        "1. Используйте команду /add_lesson\n"
-        "2. Выберите день недели\n"
-        "3. Введите название предмета\n"
-        "4. Введите время (например: 10:00-11:35)\n"
-        "5. Введите корпус (или 'нет')\n"
-        "6. Введите аудиторию (или 'нет')\n"
-        "7. Введите преподавателя (или 'нет')\n\n"
+        "1. Нажмите '📅 Расписание'\n"
+        "2. Нажмите '➕ Добавить урок'\n"
+        "3. Выберите день недели\n"
+        "4. Введите название предмета\n"
+        "5. Введите время (например: 10:00-11:35)\n"
+        "6. Введите корпус (или 'нет')\n"
+        "7. Введите аудиторию (или 'нет')\n"
+        "8. Введите преподавателя (или 'нет')\n\n"
         "<b>Формат времени:</b> ЧЧ:ММ-ЧЧ:ММ (пример: 08:30-10:05)",
         reply_markup=get_main_keyboard(),
         parse_mode="HTML",
@@ -227,14 +210,13 @@ async def show_tasks_help(message: Message):
     """Помощь по разделу задач"""
     await message.answer(
         "📝 <b>Помощь по разделу 'Задачи':</b>\n\n"
-        "<b>Основные команды:</b>\n"
-        "/show_tasks - показать все задачи\n"
-        "/add_task - добавить новую задачу\n"
-        "/complete_task - отметить задачу как выполненную\n"
-        "/urgent_tasks - показать срочные задачи\n"
-        "/task_stats - статистика по задачам\n\n"
-        "<b>Что такое срочные задачи?</b>\n"
-        "Это задачи с дедлайном меньше 7 дней\n\n"
+        "<b>Как добавить задачу:</b>\n"
+        "1. Нажмите '✅ Задачи'\n"
+        "2. Нажмите '➕ Добавить задачу'\n"
+        "3. Введите название задачи\n"
+        "4. Введите описание (или 'нет')\n"
+        "5. Введите дедлайн (формат: ГГГГ-ММ-ДД, или 'нет')\n"
+        "6. Выберите приоритет\n\n"
         "<b>Формат дедлайна:</b> ГГГГ-ММ-ДД (пример: 2024-12-31)",
         reply_markup=get_main_keyboard(),
         parse_mode="HTML",
@@ -245,15 +227,14 @@ async def show_events_help(message: Message):
     """Помощь по разделу событий"""
     await message.answer(
         "🎯 <b>Помощь по разделу 'События':</b>\n\n"
-        "<b>Основные команды:</b>\n"
-        "/show_events - показать все события\n"
-        "/add_event - добавить новое событие\n"
-        "/upcoming_events - ближайшие события (7 дней)\n\n"
-        "<b>Что такое повторяющиеся события?</b>\n"
-        "События, которые происходят регулярно:\n"
-        "• Еженедельно - каждую неделю\n"
-        "• Ежемесячно - каждый месяц\n"
-        "• Ежегодно - каждый год\n\n"
+        "<b>Как добавить событие:</b>\n"
+        "1. Нажмите '🎯 События'\n"
+        "2. Нажмите '➕ Добавить событие'\n"
+        "3. Введите название события\n"
+        "4. Введите описание (или 'нет')\n"
+        "5. Введите дату и время (формат: ГГГГ-ММ-ДД ЧЧ:ММ)\n"
+        "6. Введите место (или 'нет')\n"
+        "7. Выберите повторяемость\n\n"
         "<b>Формат даты и времени:</b> ГГГГ-ММ-ДД ЧЧ:ММ (пример: 2024-12-31 18:30)",
         reply_markup=get_main_keyboard(),
         parse_mode="HTML",
@@ -263,33 +244,63 @@ async def show_events_help(message: Message):
 # ==================== КОМАНДЫ ДЛЯ АВТОПОДСКАЗОК ====================
 
 
-@router.message(Command("add_lesson"))
-async def cmd_add_lesson_via_command(message: Message):
-    """Добавление урока через команду"""
-    from src.handlers.schedule import cmd_add_lesson
-
-    await cmd_add_lesson(message)
-
-
 @router.message(Command("add_task"))
-async def cmd_add_task_via_command(message: Message):
+async def cmd_add_task_via_command(message: Message, state: FSMContext):
     """Добавление задачи через команду"""
-    from aiogram.fsm.context import FSMContext
+    from src.handlers.tasks.add import add_task_handler_callback
 
-    from src import bot
-    from src.handlers.tasks import add_task_handler
+    # Создаем mock callback
+    class MockCallback:
+        def __init__(self, message):
+            self.message = message
+            self.from_user = message.from_user
+            self.data = "add_task_btn"
 
-    user_id = message.from_user.id
-    user_current_section[user_id] = "tasks"
-    state = FSMContext(bot.storage, message.chat.id, message.from_user.id)
-    await add_task_handler(message, state)
+        async def answer(self, text=None):
+            pass
+
+    mock_callback = MockCallback(message)
+    await add_task_handler_callback(mock_callback, state)
 
 
 @router.message(Command("add_event"))
-async def cmd_add_event_via_command(message: Message):
+async def cmd_add_event_via_command(message: Message, state: FSMContext):
     """Добавление события через команду"""
-    await message.answer(
-        "🎯 <b>Добавление события</b>\n\nЭта функция скоро будет доступна!",
-        reply_markup=get_main_keyboard(),
-        parse_mode="HTML",
-    )
+    from src.handlers.events.add import add_event_handler
+
+    # Создаем mock callback
+    class MockCallback:
+        def __init__(self, message):
+            self.message = message
+            self.from_user = message.from_user
+            self.data = "add_event_btn"
+
+        async def answer(self, text=None):
+            pass
+
+    mock_callback = MockCallback(message)
+    await add_event_handler(mock_callback, state)
+
+
+# ==================== ОБРАБОТЧИКИ ДЛЯ INLINE-КНОПОК ====================
+
+
+@router.callback_query(F.data == "schedule_help_btn")
+async def schedule_help_handler(callback: CallbackQuery):
+    """Помощь по расписанию через inline-кнопку"""
+    await callback.answer()
+    await show_schedule_help(callback.message)
+
+
+@router.callback_query(F.data == "tasks_help_btn")
+async def tasks_help_handler(callback: CallbackQuery):
+    """Помощь по задачам через inline-кнопку"""
+    await callback.answer()
+    await show_tasks_help(callback.message)
+
+
+@router.callback_query(F.data == "events_help_btn")
+async def events_help_handler(callback: CallbackQuery):
+    """Помощь по событиям через inline-кнопку"""
+    await callback.answer()
+    await show_events_help(callback.message)

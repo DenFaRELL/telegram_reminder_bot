@@ -78,7 +78,7 @@ def get_lessons_selection_keyboard(lessons, start_index=0):
 
     for i, lesson in enumerate(lessons[start_index : start_index + 5], start=1):
         lesson_id = lesson["id"]
-        subject = lesson["subject"][:20]  # Обрезаем длинные названия
+        subject = lesson["subject"][:20]
         day = lesson["day_of_week"]
         time = lesson["start_time"]
         button_text = f"{start_index + i}. {day[:3]} {time} - {subject}"
@@ -128,10 +128,10 @@ def get_lesson_detail_keyboard(lesson_id):
     keyboard = [
         [
             InlineKeyboardButton(
-                text="✏️ Редактировать", callback_data=f"edit_lesson_{lesson_id}"
+                text="✏️ Редактировать", callback_data=f"lesson_edit_{lesson_id}"
             ),
             InlineKeyboardButton(
-                text="🗑️ Удалить", callback_data=f"delete_lesson_{lesson_id}"
+                text="🗑️ Удалить", callback_data=f"lesson_delete_{lesson_id}"
             ),
         ],
         [
@@ -185,7 +185,7 @@ def get_delete_confirmation_keyboard(lesson_id):
     keyboard = [
         [
             InlineKeyboardButton(
-                text="✅ Да, удалить", callback_data=f"confirm_delete_{lesson_id}"
+                text="✅ Да, удалить", callback_data=f"lesson_confirm_delete_{lesson_id}"
             ),
             InlineKeyboardButton(
                 text="❌ Нет, вернуться", callback_data=f"back_to_lesson_{lesson_id}"
@@ -287,7 +287,7 @@ def get_tasks_selection_keyboard(tasks, start_index=0):
 
     for i, task in enumerate(tasks[start_index : start_index + 5], start=1):
         task_id = task["id"]
-        title = task["title"][:25]  # Обрезаем длинные названия
+        title = task["title"][:25]
         button_text = f"{start_index + i}. {title}"
 
         keyboard.append(
@@ -358,7 +358,8 @@ def get_edit_task_keyboard(task_id):
     keyboard = [
         [
             InlineKeyboardButton(
-                text="📝 Название", callback_data=f"edit_task_field_title_{task_id}"
+                text="📝 Название",
+                callback_data=f"edit_task_field_title_{task_id}"
             ),
             InlineKeyboardButton(
                 text="📄 Описание",
@@ -367,15 +368,18 @@ def get_edit_task_keyboard(task_id):
         ],
         [
             InlineKeyboardButton(
-                text="📅 Дедлайн", callback_data=f"edit_task_field_deadline_{task_id}"
+                text="📅 Дедлайн",
+                callback_data=f"edit_task_field_deadline_{task_id}"
             ),
             InlineKeyboardButton(
-                text="🎯 Приоритет", callback_data=f"edit_task_field_priority_{task_id}"
+                text="🎯 Приоритет",
+                callback_data=f"edit_task_field_priority_{task_id}"
             ),
         ],
         [
             InlineKeyboardButton(
-                text="🔙 Назад к задаче", callback_data=f"back_to_task_{task_id}"
+                text="🔙 Назад к задаче",
+                callback_data=f"back_to_task_{task_id}"
             )
         ],
     ]
@@ -390,7 +394,7 @@ def get_priority_selection_keyboard(for_edit=False, task_id=None):
                 text="🔴 Высокий",
                 callback_data=(
                     f"select_priority_high_{task_id}"
-                    if for_edit
+                    if for_edit and task_id
                     else "select_priority_high"
                 ),
             ),
@@ -398,7 +402,7 @@ def get_priority_selection_keyboard(for_edit=False, task_id=None):
                 text="🟡 Средний",
                 callback_data=(
                     f"select_priority_medium_{task_id}"
-                    if for_edit
+                    if for_edit and task_id
                     else "select_priority_medium"
                 ),
             ),
@@ -408,13 +412,13 @@ def get_priority_selection_keyboard(for_edit=False, task_id=None):
                 text="🟢 Низкий",
                 callback_data=(
                     f"select_priority_low_{task_id}"
-                    if for_edit
+                    if for_edit and task_id
                     else "select_priority_low"
                 ),
             )
         ],
     ]
-    if for_edit:
+    if for_edit and task_id:
         keyboard.append(
             [
                 InlineKeyboardButton(
@@ -463,8 +467,8 @@ def get_events_selection_keyboard(events, start_index=0):
 
     for i, event in enumerate(events[start_index : start_index + 5], start=1):
         event_id = event["id"]
-        title = event["title"][:25]  # Обрезаем длинные названия
-        event_date = event["event_datetime"][:10]  # Берем только дату
+        title = event["title"][:25]
+        event_date = event["event_datetime"][:10]
         button_text = f"{start_index + i}. {event_date} - {title}"
 
         keyboard.append(
