@@ -16,6 +16,7 @@ docblockr.md
 # Database
 *.db
 *.sqlite3
+*.md
 
 # Environment
 .env
@@ -34,5 +35,6 @@ docblockr.md
 # OS
 .DS_Store
 Thumbs.db
+
 # TOML
 .toml
