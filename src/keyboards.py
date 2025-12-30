@@ -517,15 +517,18 @@ def get_event_detail_keyboard(event_id):
     keyboard = [
         [
             InlineKeyboardButton(
-                text="✏️ Редактировать", callback_data=f"edit_event_{event_id}"
+                text="✏️ Редактировать",
+                callback_data=f"edit_event_{event_id}"  # Важно: edit_event_{event_id}
             ),
             InlineKeyboardButton(
-                text="🗑️ Удалить", callback_data=f"delete_event_{event_id}"
+                text="🗑️ Удалить",
+                callback_data=f"delete_event_{event_id}"
             ),
         ],
         [
             InlineKeyboardButton(
-                text="🔙 Назад к событиям", callback_data="back_to_events"
+                text="🔙 Назад к событиям",
+                callback_data="back_to_events"
             )
         ],
     ]
@@ -664,12 +667,14 @@ def get_weekday_selection_keyboard(for_edit=False, event_id=None):
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
+# В src/keyboards.py, функция get_edit_event_keyboard:
 def get_edit_event_keyboard(event_id):
     """Клавиатура для редактирования события"""
     keyboard = [
         [
             InlineKeyboardButton(
-                text="📝 Название", callback_data=f"edit_event_field_title_{event_id}"
+                text="📝 Название",
+                callback_data=f"edit_event_field_title_{event_id}"  # Важно: edit_event_field_title_{event_id}
             ),
             InlineKeyboardButton(
                 text="📄 Описание",
@@ -679,10 +684,11 @@ def get_edit_event_keyboard(event_id):
         [
             InlineKeyboardButton(
                 text="📅 Дата и время",
-                callback_data=f"edit_event_field_datetime_{event_id}",
+                callback_data=f"edit_event_field_datetime_{event_id}",  # Используйте datetime, а не event_datetime
             ),
             InlineKeyboardButton(
-                text="📍 Место", callback_data=f"edit_event_field_location_{event_id}"
+                text="📍 Место",
+                callback_data=f"edit_event_field_location_{event_id}"
             ),
         ],
         [
@@ -693,7 +699,8 @@ def get_edit_event_keyboard(event_id):
         ],
         [
             InlineKeyboardButton(
-                text="🔙 Назад к событию", callback_data=f"back_to_event_{event_id}"
+                text="🔙 Назад к событию",
+                callback_data=f"back_to_event_{event_id}"
             )
         ],
     ]

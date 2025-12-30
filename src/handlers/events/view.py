@@ -1,19 +1,19 @@
 # src/handlers/events/view.py
-"""Обработчики для просмотра событий"""
-
-from datetime import datetime
+"""Обработчики для просмотра и навигации по событиям"""
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 
-from src.handlers.events.base import format_event_details, get_event, get_user_events
 from src.keyboards import (
     get_event_detail_keyboard,
     get_events_list_keyboard,
     get_events_selection_keyboard,
 )
 
+from .base import format_event_details, get_event, get_user_events
+
 router = Router()
+
 
 # Словарь для кэширования событий
 user_events_cache = {}
@@ -21,7 +21,7 @@ user_events_cache = {}
 
 async def show_events_list(message: Message, user_id: int):
     """Показать список событий"""
-    events = get_user_events(user_id, upcoming_only=True)
+    events = get_user_events(user_id)
     user_events_cache[user_id] = events
 
     if not events:
@@ -40,11 +40,17 @@ async def show_events_list(message: Message, user_id: int):
 
     for i, event in enumerate(events[:5], 1):
         title = event["title"]
-        event_time = datetime.strptime(event["event_datetime"], "%Y-%m-%d %H:%M")
-        formatted_date = event_time.strftime("%d.%m.%Y")
-        formatted_time = event_time.strftime("%H:%M")
+        event_datetime = event["event_datetime"]
 
-        response += f"<b>{i}.</b> {formatted_date} {formatted_time} - {title}\n\n"
+        # Форматируем дату
+        try:
+            from datetime import datetime
+            dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
+            formatted_date = dt.strftime("%d.%m.%Y %H:%M")
+        except:
+            formatted_date = event_datetime
+
+        response += f"<b>{i}.</b> {formatted_date} - {title}\n"
 
     await message.answer(
         response,
@@ -85,15 +91,23 @@ async def events_page_handler(callback: CallbackQuery):
     response = "🎯 <b>Ваши события:</b>\n\n"
     response += "<i>Выберите событие для просмотра деталей:</i>\n\n"
 
-    for i, event in enumerate(events[start_index : start_index + 5], 1):
-        title = event["title"]
-        event_time = datetime.strptime(event["event_datetime"], "%Y-%m-%d %H:%M")
-        formatted_date = event_time.strftime("%d.%m.%Y")
-        formatted_time = event_time.strftime("%H:%M")
+    for i in range(start_index, len(events)):
+        if i >= start_index + 5:
+            break
 
-        response += (
-            f"<b>{start_index + i}.</b> {formatted_date} {formatted_time} - {title}\n\n"
-        )
+        event = events[i]
+        title = event["title"]
+        event_datetime = event["event_datetime"]
+
+        # Форматируем дату
+        try:
+            from datetime import datetime
+            dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
+            formatted_date = dt.strftime("%d.%m.%Y %H:%M")
+        except:
+            formatted_date = event_datetime
+
+        response += f"<b>{i + 1}.</b> {formatted_date} - {title}\n"
 
     await callback.message.answer(
         response,
@@ -108,12 +122,3 @@ async def back_to_events_handler(callback: CallbackQuery):
     await callback.answer()
     user_id = callback.from_user.id
     await show_events_list(callback.message, user_id)
-
-
-@router.callback_query(F.data == "events_help_btn")
-async def events_help_handler(callback: CallbackQuery):
-    """Помощь по событиям через inline-кнопку"""
-    from src.handlers.main import show_events_help
-
-    await callback.answer()
-    await show_events_help(callback.message)

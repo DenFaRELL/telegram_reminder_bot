@@ -6,15 +6,13 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 # Импортируем все под-роутеры
-from src.handlers.events.add import router as add_router
-from src.handlers.events.common import (
-    router as common_router,  # Добавляем общие обработчики
-)
-from src.handlers.events.edit import router as edit_router
+from .add import router as add_router
+from .common import router as common_router
+from .edit import router as edit_router
 
 # Импортируем функцию для показа событий
-from src.handlers.events.view import router as view_router
-from src.handlers.events.view import show_events_list
+from .view import router as view_router
+from .view import show_events_list
 
 router = Router()
 
@@ -22,7 +20,7 @@ router = Router()
 router.include_router(add_router)
 router.include_router(view_router)
 router.include_router(edit_router)
-router.include_router(common_router)  # Добавляем общие обработчики
+router.include_router(common_router)
 
 
 @router.message(F.text == "🎯 События")

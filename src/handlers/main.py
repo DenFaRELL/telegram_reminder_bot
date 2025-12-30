@@ -6,13 +6,14 @@ from aiogram.types import CallbackQuery, Message
 
 # Импортируем функции для показа разделов
 from src.database import get_connection
-from src.handlers.events.main import router as events_router
-from src.handlers.events.view import show_events_list
-from src.handlers.schedule.main import router as schedule_router
-from src.handlers.schedule.main import show_schedule
-from src.handlers.tasks.main import router as tasks_router
-from src.handlers.tasks.main import show_tasks_section
 from src.keyboards import get_main_keyboard
+
+from .events.main import router as events_router
+from .events.view import show_events_list
+from .schedule.main import router as schedule_router
+from .schedule.main import show_schedule
+from .tasks.main import router as tasks_router
+from .tasks.main import show_tasks_section
 
 router = Router()
 
