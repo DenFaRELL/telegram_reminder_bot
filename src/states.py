@@ -21,7 +21,7 @@ class EditLessonStates(StatesGroup):
 
 # ==================== СОСТОЯНИЯ ДЛЯ ЗАДАЧ ====================
 
-class TaskStates(StatesGroup):
+class AddTaskStates(StatesGroup):
     """Состояния для добавления задачи"""
     waiting_for_title = State()
     waiting_for_description = State()
@@ -36,7 +36,7 @@ class EditTaskStates(StatesGroup):
 
 # ==================== СОСТОЯНИЯ ДЛЯ СОБЫТИЙ ====================
 
-class EventStates(StatesGroup):
+class AddEventStates(StatesGroup):
     """Состояния для добавления события"""
     waiting_for_title = State()
     waiting_for_description = State()

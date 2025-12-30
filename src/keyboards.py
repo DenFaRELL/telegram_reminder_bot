@@ -355,11 +355,12 @@ def get_task_detail_keyboard(task_id):
 
 def get_edit_task_keyboard(task_id):
     """Клавиатура для редактирования задачи"""
+    # Убедитесь, что task_id передается правильно
     keyboard = [
         [
             InlineKeyboardButton(
                 text="📝 Название",
-                callback_data=f"edit_task_field_title_{task_id}"
+                callback_data=f"edit_task_field_title_{task_id}"  # Должно быть edit_task_field_title_25
             ),
             InlineKeyboardButton(
                 text="📄 Описание",

@@ -19,9 +19,9 @@ router = Router()
 logger = logging.getLogger(__name__)
 
 # Включаем все под-роутеры (важен порядок!)
+router.include_router(edit_router)
 router.include_router(add_router)
 router.include_router(view_router)
-router.include_router(edit_router)
 router.include_router(common_router)
 
 

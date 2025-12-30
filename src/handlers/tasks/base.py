@@ -1,12 +1,17 @@
 # src/handlers/tasks/base.py
 """Базовые функции для работы с задачами"""
 
+import logging
 import re
 from datetime import datetime
 
 from src.database import get_connection
 
+logger = logging.getLogger(__name__)
+
+
 # ==================== ВАЛИДАЦИЯ ====================
+
 
 def validate_title(title: str) -> tuple[bool, str]:
     """Проверка названия задачи"""
@@ -45,6 +50,7 @@ def validate_priority(priority: str) -> tuple[bool, str]:
 
 
 # ==================== ОПЕРАЦИИ С БАЗОЙ ДАННЫХ ====================
+
 
 def save_task(user_id: int, data: dict) -> tuple[bool, int, str]:
     """Сохранение задачи в базу данных"""
@@ -102,14 +108,22 @@ def update_task(task_id: int, field: str, value) -> tuple[bool, str]:
                 "UPDATE tasks SET priority = ? WHERE id = ?", (value, task_id)
             )
         elif field == "complete":
+            # SQLite использует 1 для True, 0 для False
+            is_completed = 1 if value else 0
             cursor.execute(
-                "UPDATE tasks SET is_completed = ? WHERE id = ?", (value, task_id)
+                "UPDATE tasks SET is_completed = ? WHERE id = ?", (is_completed, task_id)
             )
+        else:
+            return False, f"Неизвестное поле: {field}"
 
         conn.commit()
+        rows_affected = cursor.rowcount
+        logger.info(f"Обновлена задача {task_id}, поле '{field}', затронуто строк: {rows_affected}")
+
         return True, "Поле успешно обновлено"
 
     except Exception as e:
+        logger.error(f"Ошибка при обновлении задачи {task_id}, поле {field}: {e}")
         return False, f"Ошибка при обновлении: {str(e)}"
 
     finally:
@@ -135,11 +149,12 @@ def get_user_tasks(user_id: int, only_active=True):
     cursor = conn.cursor()
 
     if only_active:
+        # ТОЛЬКО АКТИВНЫЕ (не завершенные)
         cursor.execute(
             """
             SELECT id, title, description, deadline, priority, is_completed
             FROM tasks
-            WHERE user_id = ? AND is_completed = FALSE
+            WHERE user_id = ? AND is_completed = 0
             ORDER BY
                 CASE priority
                     WHEN 'high' THEN 1
@@ -152,6 +167,7 @@ def get_user_tasks(user_id: int, only_active=True):
             (user_id,),
         )
     else:
+        # ВСЕ задачи
         cursor.execute(
             """
             SELECT id, title, description, deadline, priority, is_completed
@@ -164,6 +180,11 @@ def get_user_tasks(user_id: int, only_active=True):
 
     tasks = [dict(row) for row in cursor.fetchall()]
     conn.close()
+
+    logger.info(f"Загружено задач для пользователя {user_id}: {len(tasks)} (only_active={only_active})")
+    for task in tasks:
+        logger.info(f"Задача {task['id']}: {task['title']}, completed={task['is_completed']}")
+
     return tasks
 
 

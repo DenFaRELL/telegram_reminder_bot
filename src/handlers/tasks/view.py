@@ -31,9 +31,12 @@ async def show_tasks_list(message: Message, user_id: int):
     try:
         logger.info(f"Показать список задач для пользователя ID: {user_id}")
 
+        # Получаем отдельно активные и завершенные
         active_tasks = get_user_tasks(user_id, only_active=True)
-        completed_tasks = get_user_tasks(user_id, only_active=False)
-        completed_tasks = [t for t in completed_tasks if t.get("is_completed")]
+        all_tasks = get_user_tasks(user_id, only_active=False)
+        completed_tasks = [t for t in all_tasks if t.get("is_completed") == 1]
+
+        logger.info(f"Активных задач: {len(active_tasks)}, завершенных: {len(completed_tasks)}")
 
         user_tasks_cache[user_id] = active_tasks
 
@@ -49,9 +52,9 @@ async def show_tasks_list(message: Message, user_id: int):
             return
 
         response = "✅ <b>Ваши задачи:</b>\n\n"
-        response += "<i>Выберите активную задачу для просмотра деталей:</i>\n\n"
 
         if active_tasks:
+            response += "<i>Выберите активную задачу для просмотра деталей:</i>\n\n"
             response += "📋 <b>Активные задачи:</b>\n\n"
 
             for i, task in enumerate(active_tasks[:5], 1):
@@ -68,20 +71,26 @@ async def show_tasks_list(message: Message, user_id: int):
                 response += f"{priority_emoji} <i>Приоритет: {task.get('priority', 'medium')}</i>\n\n"
 
         if completed_tasks:
-            response += "\n🏁 <b>Завершённые задачи:</b>\n\n"
+            response += "\n🏁 <b>Завершённые задачи:</b>\n"
+            response += f"<i>Всего завершено: {len(completed_tasks)}</i>\n\n"
 
-            for task in completed_tasks[:3]:
-                title = task["title"]
-                response += f"✅ <b>{title}</b>"
+            # Показываем только 3 последних завершенных задачи
+            recent_completed = completed_tasks[-3:] if len(completed_tasks) > 3 else completed_tasks
+            for i, task in enumerate(recent_completed, 1):
+                title = task["title"][:20] + "..." if len(task["title"]) > 20 else task["title"]
+                response += f"✅ <b>{title}</b>\n"
 
                 if task.get("deadline"):
-                    response += f"📅 <i>Было до: {task['deadline']}</i>\n\n"
-                else:
+                    response += f"📅 <i>Было до: {task['deadline']}</i>\n"
+
+                if i < len(recent_completed):
                     response += "\n"
+
+        keyboard = get_tasks_list_keyboard() if not active_tasks else get_tasks_selection_keyboard(active_tasks)
 
         await message.answer(
             response,
-            reply_markup=get_tasks_selection_keyboard(active_tasks),
+            reply_markup=keyboard,
             parse_mode="HTML",
         )
     except Exception as e:

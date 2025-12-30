@@ -20,7 +20,7 @@ from src.handlers.events.base import (
     validate_title,
 )
 from src.keyboards import get_recurrence_keyboard
-from src.states import EventStates
+from src.states import AddEventStates
 
 router = Router()
 
@@ -33,10 +33,10 @@ async def add_event_handler(callback: CallbackQuery, state: FSMContext):
         "🎯 <b>Добавление нового события</b>\n\nВведите название события:",
         parse_mode="HTML",
     )
-    await state.set_state(EventStates.waiting_for_title)
+    await state.set_state(AddEventStates.waiting_for_title)
 
 
-@router.message(EventStates.waiting_for_title)
+@router.message(AddEventStates.waiting_for_title)
 async def process_event_title(message: Message, state: FSMContext):
     """Обработка названия события"""
     title = message.text.strip()
@@ -51,10 +51,10 @@ async def process_event_title(message: Message, state: FSMContext):
         "📄 <b>Введите описание события (или напишите 'нет' если не нужно):</b>",
         parse_mode="HTML",
     )
-    await state.set_state(EventStates.waiting_for_description)
+    await state.set_state(AddEventStates.waiting_for_description)
 
 
-@router.message(EventStates.waiting_for_description)
+@router.message(AddEventStates.waiting_for_description)
 async def process_event_description(message: Message, state: FSMContext):
     """Обработка описания события"""
     description = message.text.strip()
@@ -73,10 +73,10 @@ async def process_event_description(message: Message, state: FSMContext):
         "<i>Пример: 2024-12-31 18:30</i>",
         parse_mode="HTML",
     )
-    await state.set_state(EventStates.waiting_for_datetime)
+    await state.set_state(AddEventStates.waiting_for_datetime)
 
 
-@router.message(EventStates.waiting_for_datetime)
+@router.message(AddEventStates.waiting_for_datetime)
 async def process_event_datetime(message: Message, state: FSMContext):
     """Обработка даты и времени события"""
     datetime_str = message.text.strip()
@@ -91,10 +91,10 @@ async def process_event_datetime(message: Message, state: FSMContext):
         "📍 <b>Введите место события (или напишите 'нет' если не нужно):</b>",
         parse_mode="HTML",
     )
-    await state.set_state(EventStates.waiting_for_location)
+    await state.set_state(AddEventStates.waiting_for_location)
 
 
-@router.message(EventStates.waiting_for_location)
+@router.message(AddEventStates.waiting_for_location)
 async def process_event_location(message: Message, state: FSMContext):
     """Обработка места события"""
     location = message.text.strip()
@@ -113,7 +113,7 @@ async def process_event_location(message: Message, state: FSMContext):
         reply_markup=get_recurrence_keyboard(),
         parse_mode="HTML",
     )
-    await state.set_state(EventStates.waiting_for_recurrence)
+    await state.set_state(AddEventStates.waiting_for_recurrence)
 
 
 @router.callback_query(F.data.startswith("select_recurrence_"))

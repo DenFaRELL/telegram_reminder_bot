@@ -18,7 +18,7 @@ from src.handlers.tasks.base import (
     validate_title,
 )
 from src.keyboards import get_priority_selection_keyboard
-from src.states import TaskStates
+from src.states import AddTaskStates
 
 router = Router()
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ async def handle_add_task_btn(callback: CallbackQuery, state: FSMContext):
             "📝 <b>Добавление новой задачи</b>\n\nВведите название задачи:",
             parse_mode="HTML",
         )
-        await state.set_state(TaskStates.waiting_for_title)
+        await state.set_state(AddTaskStates.waiting_for_title)
     except Exception as e:
         logger.error(f"Ошибка в handle_add_task_btn: {e}")
         await callback.answer("❌ Ошибка при добавлении задачи")
@@ -45,7 +45,7 @@ async def handle_add_task_btn(callback: CallbackQuery, state: FSMContext):
 
 # ==================== ОБРАБОТКА ПОЛЕЙ ====================
 
-@router.message(TaskStates.waiting_for_title)
+@router.message(AddTaskStates.waiting_for_title)
 async def handle_task_title(message: Message, state: FSMContext):
     """Обработка названия задачи"""
     try:
@@ -63,13 +63,13 @@ async def handle_task_title(message: Message, state: FSMContext):
             "📝 <b>Введите описание задачи (или напишите 'нет' если не нужно):</b>",
             parse_mode="HTML",
         )
-        await state.set_state(TaskStates.waiting_for_description)
+        await state.set_state(AddTaskStates.waiting_for_description)
     except Exception as e:
         logger.error(f"Ошибка в handle_task_title: {e}")
         await message.answer("❌ Ошибка при обработке названия")
 
 
-@router.message(TaskStates.waiting_for_description)
+@router.message(AddTaskStates.waiting_for_description)
 async def handle_task_description(message: Message, state: FSMContext):
     """Обработка описания задачи"""
     try:
@@ -91,13 +91,13 @@ async def handle_task_description(message: Message, state: FSMContext):
             "<i>Пример: 2024-12-31</i>",
             parse_mode="HTML",
         )
-        await state.set_state(TaskStates.waiting_for_deadline)
+        await state.set_state(AddTaskStates.waiting_for_deadline)
     except Exception as e:
         logger.error(f"Ошибка в handle_task_description: {e}")
         await message.answer("❌ Ошибка при обработке описания")
 
 
-@router.message(TaskStates.waiting_for_deadline)
+@router.message(AddTaskStates.waiting_for_deadline)
 async def handle_task_deadline(message: Message, state: FSMContext):
     """Обработка дедлайна задачи"""
     try:
@@ -119,7 +119,7 @@ async def handle_task_deadline(message: Message, state: FSMContext):
             reply_markup=get_priority_selection_keyboard(for_edit=False),
             parse_mode="HTML",
         )
-        await state.set_state(TaskStates.waiting_for_priority)
+        await state.set_state(AddTaskStates.waiting_for_priority)
     except Exception as e:
         logger.error(f"Ошибка в handle_task_deadline: {e}")
         await message.answer("❌ Ошибка при обработке дедлайна")
@@ -127,7 +127,8 @@ async def handle_task_deadline(message: Message, state: FSMContext):
 
 # ==================== ВЫБОР ПРИОРИТЕТА ====================
 
-@router.callback_query(TaskStates.waiting_for_priority, F.data.startswith("select_priority_"))
+
+@router.callback_query(AddTaskStates.waiting_for_priority, F.data.startswith("select_priority_"))
 async def handle_select_priority_for_new(callback: CallbackQuery, state: FSMContext):
     """Обработка выбора приоритета для новой задачи"""
     try:

@@ -1,5 +1,4 @@
-# src/handlers/tasks/edit.py
-"""Обработчики для редактирования и удаления задач"""
+# src/handlers/tasks/edit.py - ИСПРАВЛЕННЫЙ КОД
 
 import logging
 from datetime import datetime
@@ -37,19 +36,29 @@ logger = logging.getLogger(__name__)
 
 # ==================== РЕДАКТИРОВАНИЕ ====================
 
+@router.callback_query(F.data == "edit_task_")  # Только точное совпадение
+async def handle_edit_task_menu(callback: CallbackQuery):
+    """Показать меню редактирования задачи"""
+    try:
+        logger.info(f"=== ОБРАБОТЧИК МЕНЮ РЕДАКТИРОВАНИЯ ===")
+        logger.info(f"callback_data: {callback.data}")
 
-@router.callback_query(F.data.startswith("edit_task_"))
+        await callback.answer("❌ Неверный формат команды редактирования")
+    except Exception as e:
+        logger.error(f"Ошибка в handle_edit_task_menu: {e}")
+        await callback.answer("❌ Ошибка")
+
+
+@router.callback_query(F.data.regexp(r'^edit_task_\d+$'))  # edit_task_25
 async def handle_edit_task(callback: CallbackQuery):
     """Показать меню редактирования задачи"""
     try:
-        logger.info(f"callback_data в handle_edit_task: {callback.data}")
-        # Формат: edit_task_17
-        data_parts = callback.data.split("_")
-        if len(data_parts) != 3:
-            await callback.answer("❌ Неверный формат")
-            return
+        logger.info(f"=== ОБРАБОТЧИК edit_task ВЫЗВАН ===")
+        logger.info(f"callback_data: {callback.data}")
 
-        task_id = int(data_parts[2])  # '17'
+        # Формат: edit_task_25
+        data_parts = callback.data.split("_")
+        task_id = int(data_parts[2])
         logger.info(f"Запрос на редактирование задачи ID: {task_id}")
 
         await callback.answer()
@@ -67,16 +76,12 @@ async def handle_edit_task(callback: CallbackQuery):
             reply_markup=get_edit_task_keyboard(task_id),
             parse_mode="HTML"
         )
-    except (ValueError, IndexError) as e:
-        logger.error(f"Ошибка парсинга в handle_edit_task: {e}, callback_data: {callback.data}")
-        await callback.answer("❌ Ошибка при редактировании")
     except Exception as e:
         logger.error(f"Ошибка в handle_edit_task: {e}")
         await callback.answer("❌ Ошибка при редактировании")
 
 
 # ==================== УДАЛЕНИЕ ====================
-
 
 @router.callback_query(F.data.startswith("delete_task_"))
 async def handle_delete_task(callback: CallbackQuery):
@@ -129,7 +134,6 @@ async def handle_confirm_delete_task(callback: CallbackQuery):
             # Показываем обновленный список задач
             user_id = callback.from_user.id
             from .view import show_tasks_list
-
             await show_tasks_list(callback.message, user_id)
         else:
             await callback.message.answer("❌ Не удалось удалить задачу")
@@ -140,47 +144,42 @@ async def handle_confirm_delete_task(callback: CallbackQuery):
 
 # ==================== РЕДАКТИРОВАНИЕ ПОЛЕЙ ====================
 
-
-# src/handlers/tasks/edit.py - ПЕРЕПИШИТЕ handle_edit_task_field
-
 @router.callback_query(F.data.startswith("edit_task_field_"))
 async def handle_edit_task_field(callback: CallbackQuery, state: FSMContext):
     """Выбрано поле задачи для редактирования"""
+    logger.info(f"=== ОБРАБОТЧИК edit_task_field ВЫЗВАН ===")
+    logger.info(f"callback_data: {callback.data}")
+    logger.info(f"Пользователь: {callback.from_user.id}")
+
     try:
-        logger.info(f"Получен callback_data: {callback.data}")
-
-        # Формат callback_data: edit_task_field_title_17
-        # Разделяем на: ['edit', 'task', 'field', 'title', '17']
+        # Формат callback_data: edit_task_field_title_25
         data_parts = callback.data.split("_")
-
         logger.info(f"Разделенные части: {data_parts}, количество: {len(data_parts)}")
 
         if len(data_parts) < 5:
-            logger.error(f"Неверный формат callback_data: {callback.data}")
-            await callback.answer("❌ Неверный формат callback_data")
+            logger.error(f"Неверный формат! Нужно минимум 5 частей: edit_task_field_title_25")
+            await callback.answer("❌ Ошибка формата")
             return
 
-        # Четвертый элемент после 'edit_task_field_' - это название поля
-        # Например: edit_task_field_title_17 → parts[3] = 'title'
         field_name = data_parts[3]  # 'title', 'description', 'deadline', 'priority'
-        task_id = int(data_parts[4])  # '17'
+        task_id = int(data_parts[4])
 
-        logger.info(f"Парсинг успешен: поле={field_name}, task_id={task_id}")
+        logger.info(f"Успешно распарсено: field={field_name}, task_id={task_id}")
 
         await callback.answer()
         await state.update_data(task_id=task_id, field_name=field_name)
 
         task = get_task(task_id)
         if not task:
+            logger.error(f"Задача {task_id} не найдена в базе!")
             await callback.message.answer("❌ Задача не найдена!")
             return
 
         if field_name == "priority":
+            logger.info(f"Показ клавиатуры выбора приоритета для задачи {task_id}")
             await callback.message.answer(
                 "🎯 <b>Выберите новый приоритет задачи:</b>",
-                reply_markup=get_priority_selection_keyboard(
-                    for_edit=True, task_id=task_id
-                ),
+                reply_markup=get_priority_selection_keyboard(for_edit=True, task_id=task_id),
                 parse_mode="HTML",
             )
         else:
@@ -196,6 +195,7 @@ async def handle_edit_task_field(callback: CallbackQuery, state: FSMContext):
                 return
 
             current_value = task.get(field_name, "")
+            logger.info(f"Текущее значение поля {field_name}: '{current_value}'")
 
             await callback.message.answer(
                 f"✏️ <b>Редактирование {field_names[field_name]}</b>\n\n"
@@ -205,64 +205,43 @@ async def handle_edit_task_field(callback: CallbackQuery, state: FSMContext):
             )
             await state.set_state(EditTaskStates.waiting_for_field_value)
 
-    except ValueError as e:
-        logger.error(f"Ошибка преобразования числа в handle_edit_task_field: {e}, callback_data: {callback.data}")
-        await callback.answer("❌ Ошибка: неверный ID задачи")
-    except IndexError as e:
-        logger.error(f"Ошибка индекса в handle_edit_task_field: {e}, callback_data: {callback.data}, parts: {data_parts if 'data_parts' in locals() else 'N/A'}")
-        await callback.answer("❌ Ошибка: неверный формат данных")
     except Exception as e:
-        logger.error(f"Ошибка в handle_edit_task_field: {e}, callback_data: {callback.data}")
-        await callback.answer("❌ Ошибка при редактировании поля")
+        logger.error(f"КРИТИЧЕСКАЯ ОШИБКА в handle_edit_task_field: {e}", exc_info=True)
+        await callback.answer("❌ Критическая ошибка при редактировании")
 
 
-@router.callback_query(F.data.startswith("select_priority_"))
+# src/handlers/tasks/edit.py - ОСТАВЬТЕ ТОЛЬКО ЭТОТ обработчик:
+
+@router.callback_query(F.data.regexp(r'^select_priority_(high|medium|low)_\d+$'))
 async def handle_select_priority_for_edit(callback: CallbackQuery):
-    """Выбран новый приоритет задачи (только для редактирования)"""
+    """Выбран новый приоритет задачи (только для редактирования - с task_id)"""
     try:
-        # Формат callback_data: select_priority_high_17 (для редактирования)
         data_parts = callback.data.split("_")
+        new_priority = data_parts[2]
+        task_id = int(data_parts[3])
 
-        if len(data_parts) > 3:  # Значит есть task_id
-            # Должно быть: ['select', 'priority', 'high', '17']
-            if len(data_parts) != 4:
-                await callback.answer("❌ Неверный формат callback_data")
-                return
+        logger.info(f"Выбор приоритета {new_priority} для редактирования задачи ID: {task_id}")
 
-            new_priority = data_parts[2]  # 'high', 'medium', 'low'
-            task_id = int(data_parts[3])  # '17'
+        await callback.answer(f"Выбран приоритет: {new_priority}")
 
-            # Проверяем, что приоритет валидный
-            valid_priorities = ['high', 'medium', 'low']
-            if new_priority not in valid_priorities:
-                await callback.answer(f"❌ Неверный приоритет: {new_priority}")
-                return
+        success, msg = update_task(task_id, "priority", new_priority)
+        if success:
+            await callback.message.answer(
+                f"✅ <b>Приоритет задачи изменён на {new_priority}!</b>",
+                parse_mode="HTML",
+            )
 
-            logger.info(f"Выбор приоритета {new_priority} для задачи ID: {task_id}")
-
-            await callback.answer(f"Выбран приоритет: {new_priority}")
-
-            success, msg = update_task(task_id, "priority", new_priority)
-            if success:
+            # Показываем обновленную задачу
+            task = get_task(task_id)
+            if task:
+                response = format_task_details(task)
                 await callback.message.answer(
-                    f"✅ <b>Приоритет задачи изменён на {new_priority}!</b>",
+                    response,
+                    reply_markup=get_task_detail_keyboard(task_id),
                     parse_mode="HTML",
                 )
-
-                # Показываем обновленную задачу
-                task = get_task(task_id)
-                if task:
-                    response = format_task_details(task)
-                    await callback.message.answer(
-                        response,
-                        reply_markup=get_task_detail_keyboard(task_id),
-                        parse_mode="HTML",
-                    )
-            else:
-                await callback.message.answer(f"❌ <b>{msg}</b>", parse_mode="HTML")
-    except (ValueError, IndexError) as e:
-        logger.error(f"Ошибка парсинга в handle_select_priority_for_edit: {e}, callback_data: {callback.data}")
-        await callback.answer("❌ Ошибка при выборе приоритета")
+        else:
+            await callback.message.answer(f"❌ <b>{msg}</b>", parse_mode="HTML")
     except Exception as e:
         logger.error(f"Ошибка в handle_select_priority_for_edit: {e}")
         await callback.answer("❌ Ошибка при выборе приоритета")
@@ -337,7 +316,6 @@ async def handle_task_field_value_input(message: Message, state: FSMContext):
 
 # ==================== ЗАВЕРШЕНИЕ ЗАДАЧИ ====================
 
-
 @router.callback_query(F.data.startswith("complete_task_"))
 async def handle_complete_task(callback: CallbackQuery):
     """Завершить задачу"""
@@ -354,7 +332,6 @@ async def handle_complete_task(callback: CallbackQuery):
             # Показываем обновленный список задач
             user_id = callback.from_user.id
             from .view import show_tasks_list
-
             await show_tasks_list(callback.message, user_id)
         else:
             await callback.message.answer(f"❌ <b>{msg}</b>", parse_mode="HTML")
