@@ -34,7 +34,9 @@ from src.states import EditLessonStates
 router = Router()
 logger = logging.getLogger(__name__)
 
+
 # ==================== РЕДАКТИРОВАНИЕ ====================
+
 
 @router.callback_query(F.data.startswith("lesson_edit_"))
 async def handle_edit_lesson(callback: CallbackQuery):

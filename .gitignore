@@ -11,6 +11,7 @@ env.bak/
 venv.bak/
 generate_structure.py
 .pylintrc
+docblockr.md
 
 # Database
 *.db
