@@ -67,7 +67,26 @@ async def show_tasks_list(message: Message, user_id: int):
                     title = task["title"]
                     response += f"<b>{i}.</b> {title}\n"
 
-                    if task.get("deadline"):
+                if task.get("deadline"):
+                    # Форматируем дату
+                    try:
+                        deadline_str = task["deadline"]
+                        # Пробуем разные форматы
+                        date_obj = None
+                        for fmt in ["%Y-%m-%d", "%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"]:
+                            try:
+                                date_obj = datetime.strptime(deadline_str, fmt)
+                                break
+                            except ValueError:
+                                continue
+
+                        if date_obj:
+                            formatted_deadline = date_obj.strftime("%d.%m.%Y")
+                            response += f"📅 <i>До: {formatted_deadline}</i>\n"
+                        else:
+                            response += f"📅 <i>До: {deadline_str}</i>\n"
+                    except Exception as e:
+                        logger.error(f"Ошибка форматирования даты {task['deadline']}: {e}")
                         response += f"📅 <i>До: {task['deadline']}</i>\n"
 
                     priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
@@ -89,7 +108,13 @@ async def show_tasks_list(message: Message, user_id: int):
                     response += f"✅ <b>{title}</b>\n"
 
                     if task.get("deadline"):
-                        response += f"📅 <i>Было до: {task['deadline']}</i>\n"
+                        # Форматируем дату из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
+                        try:
+                            deadline_date = datetime.strptime(task["deadline"], "%Y-%m-%d")
+                            formatted_deadline = deadline_date.strftime("%d.%m.%Y")
+                            response += f"📅 <i>До: {formatted_deadline}</i>\n"
+                        except:
+                            response += f"📅 <i>До: {task['deadline']}</i>\n"
 
                     if i < len(recent_completed):
                         response += "\n"
@@ -159,7 +184,26 @@ async def handle_tasks_page(callback: CallbackQuery):
             title = task["title"]
             response += f"<b>{start_index + i}.</b> {title}\n"
 
-            if task.get("deadline"):
+        if task.get("deadline"):
+            # Форматируем дату
+            try:
+                deadline_str = task["deadline"]
+                # Пробуем разные форматы
+                date_obj = None
+                for fmt in ["%Y-%m-%d", "%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"]:
+                    try:
+                        date_obj = datetime.strptime(deadline_str, fmt)
+                        break
+                    except ValueError:
+                        continue
+
+                if date_obj:
+                    formatted_deadline = date_obj.strftime("%d.%m.%Y")
+                    response += f"📅 <i>До: {formatted_deadline}</i>\n"
+                else:
+                    response += f"📅 <i>До: {deadline_str}</i>\n"
+            except Exception as e:
+                logger.error(f"Ошибка форматирования даты {task['deadline']}: {e}")
                 response += f"📅 <i>До: {task['deadline']}</i>\n"
 
             priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(

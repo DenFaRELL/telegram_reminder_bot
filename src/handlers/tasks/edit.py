@@ -105,7 +105,13 @@ async def handle_delete_task(callback: CallbackQuery):
             response += f"📄 <b>Описание:</b> {task['description']}\n"
 
         if task.get("deadline"):
-            response += f"📅 <b>Дедлайн:</b> {task['deadline']}\n"
+            # Форматируем дату из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
+            try:
+                deadline_date = datetime.strptime(task["deadline"], "%Y-%m-%d")
+                formatted_deadline = deadline_date.strftime("%d.%m.%Y")
+                response += f"📅 <b>Дедлайн:</b> {formatted_deadline}\n"
+            except:
+                response += f"📅 <b>Дедлайн:</b> {task['deadline']}\n"
 
         response += "\n<b>Вы действительно хотите удалить эту задачу?</b>"
 

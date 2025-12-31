@@ -1,5 +1,6 @@
 # src/keyboards.py
 import re
+from datetime import datetime
 
 from aiogram.types import (
     InlineKeyboardButton,
@@ -469,8 +470,19 @@ def get_events_selection_keyboard(events, start_index=0):
     for i, event in enumerate(events[start_index : start_index + 5], start=1):
         event_id = event["id"]
         title = event["title"][:25]
-        event_date = event["event_datetime"][:10]
-        button_text = f"{start_index + i}. {event_date} - {title}"
+
+        # Форматируем дату из ГГГГ-ММ-ДД ЧЧ:ММ в ДД.ММ.ГГГГ
+        event_date_time = event["event_datetime"]
+        try:
+            # Пробуем распарсить дату и время
+            dt = datetime.strptime(event_date_time, "%Y-%m-%d %H:%M")
+            # Берем только дату в формате ДД.ММ.ГГГГ
+            formatted_date = dt.strftime("%d.%m.%Y")
+        except Exception:
+            # Если не удалось, берем первые 10 символов как есть
+            formatted_date = event_date_time[:10]
+
+        button_text = f"{start_index + i}. {formatted_date} - {title}"
 
         keyboard.append(
             [

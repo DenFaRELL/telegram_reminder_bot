@@ -1,6 +1,7 @@
 # src/handlers/tasks/add.py - ИСПРАВЛЕННЫЙ
 
 import logging
+from datetime import datetime
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -152,7 +153,13 @@ async def handle_select_priority_for_new(callback: CallbackQuery, state: FSMCont
                 response += f"📄 <b>Описание:</b> {data['description']}\n"
 
             if data.get("deadline"):
-                response += f"📅 <b>Дедлайн:</b> {data['deadline']}\n"
+                # Форматируем дату из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
+                try:
+                    deadline_date = datetime.strptime(data['deadline'], "%Y-%m-%d")
+                    formatted_deadline = deadline_date.strftime("%d.%m.%Y")
+                    response += f"📅 <b>Дедлайн:</b> {formatted_deadline}\n"
+                except:
+                    response += f"📅 <b>Дедлайн:</b> {data['deadline']}\n"
 
             priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}
             response += f"🎯 <b>Приоритет:</b> {priority_emoji.get(priority, '⚪')} {priority}\n"

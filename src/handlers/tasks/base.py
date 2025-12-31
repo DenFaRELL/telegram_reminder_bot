@@ -218,16 +218,20 @@ def format_task_details(task: dict) -> str:
         response += f"📄 <b>Описание:</b> {task['description']}\n"
 
     if task.get("deadline"):
-        deadline_date = datetime.strptime(task["deadline"], "%Y-%m-%d").date()
-        today = datetime.now().date()
+        # Форматируем дату из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
+        try:
+            deadline_date = datetime.strptime(task["deadline"], "%Y-%m-%d").date()
+            formatted_deadline = deadline_date.strftime("%d.%m.%Y")
+            today = datetime.now().date()
 
-        if deadline_date < today:
-            response += f"⏰ <b>Дедлайн:</b> {task['deadline']} <b>(ПРОСРОЧЕНО!)</b>\n"
-        else:
-            days_left = (deadline_date - today).days
-            response += (
-                f"📅 <b>Дедлайн:</b> {task['deadline']} (осталось {days_left} дней)\n"
-            )
+            if deadline_date < today:
+                response += f"⏰ <b>Дедлайн:</b> {formatted_deadline} <b>(ПРОСРОЧЕНО!)</b>\n"
+            else:
+                days_left = (deadline_date - today).days
+                response += f"📅 <b>Дедлайн:</b> {formatted_deadline} (осталось {days_left} дней)\n"
+        except:
+            # Если не удалось распарсить, показываем как есть
+            response += f"📅 <b>Дедлайн:</b> {task['deadline']}\n"
 
     priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
         task.get("priority", "medium"), "⚪"
