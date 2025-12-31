@@ -1,4 +1,4 @@
-# src/event_reminders.py
+# src/event_reminders.py - ИСПРАВЛЕННЫЙ
 """Модуль напоминаний о событиях"""
 
 import asyncio
@@ -59,7 +59,7 @@ class EventReminderService:
             (
                 now.strftime("%Y-%m-%d %H:%M"),
                 time_threshold.strftime("%Y-%m-%d %H:%M"),
-                (now - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"),  # Не отправлять чаще чем раз в час
+                (now - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M"),
             ),
         )
 
@@ -84,8 +84,10 @@ class EventReminderService:
                 reminder_time = event_time - timedelta(hours=hours_before)
 
                 # Если время напоминания еще не наступило и не в прошлом
-                if now < reminder_time < event_time:
-                    await self.create_reminder(event["id"], reminder_time, f"{hours_before}h")
+                if reminder_time < event_time:
+                    # Не создаем напоминания, которые должны были быть более 10 минут назад
+                    if (now - reminder_time).total_seconds() < 600:  # 600 секунд = 10 минут
+                        await self.create_reminder(event["id"], reminder_time, f"{hours_before}h")
 
             # Обновляем время последнего напоминания
             conn = get_connection()
@@ -110,7 +112,7 @@ class EventReminderService:
         # Проверяем, не существует ли уже такое напоминание
         cursor.execute(
             """
-            SELECT id FROM reminders
+            SELECT id FROM event_reminders
             WHERE event_id = ? AND reminder_type = ? AND reminder_sent = 0
             """,
             (event_id, reminder_type)
@@ -121,7 +123,7 @@ class EventReminderService:
         if not existing:
             cursor.execute(
                 """
-                INSERT INTO reminders (event_id, reminder_type, reminder_time)
+                INSERT INTO event_reminders (event_id, reminder_type, reminder_time)
                 VALUES (?, ?, ?)
                 """,
                 (
@@ -131,55 +133,67 @@ class EventReminderService:
                 ),
             )
             conn.commit()
+            logger.info(f"Создано напоминание для события {event_id}: {reminder_type} в {reminder_time}")
 
         conn.close()
 
     async def send_scheduled_reminders(self):
-        """Отправка запланированных напоминаний"""
+        """Отправка запланированных напоминаний о событиях"""
         conn = get_connection()
         cursor = conn.cursor()
 
         now = datetime.now()
-        future_threshold = now + timedelta(minutes=5)  # +5 минут для компенсации задержек
+        # Используем локальное время для сравнения
+        now_local_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-        cursor.execute(
-            """
-            SELECT r.*, e.title, e.event_datetime, e.location, e.description,
-                   u.telegram_id, u.username
-            FROM reminders r
-            JOIN events e ON r.event_id = e.id
+        logger.info(f"🔍 Проверка напоминаний о событиях, локальное время: {now_local_str}")
+
+        # Исправленный запрос для событий
+        cursor.execute("""
+            SELECT er.*, e.title, e.event_datetime, e.description, e.location,
+                u.telegram_id, u.username
+            FROM event_reminders er
+            JOIN events e ON er.event_id = e.id
             JOIN users u ON e.user_id = u.telegram_id
-            WHERE r.reminder_sent = 0
-            AND r.reminder_time BETWEEN ? AND ?
-            """,
-            (
-                now.strftime("%Y-%m-%d %H:%M"),
-                future_threshold.strftime("%Y-%m-%d %H:%M"),
-            ),
-        )
+            WHERE er.reminder_sent = 0
+            AND strftime('%Y-%m-%d %H:%M:%S', er.reminder_time) <= ?
+        """, (now_local_str,))
 
         reminders = cursor.fetchall()
 
+        logger.info(f"📨 Найдено напоминаний о событиях для отправки: {len(reminders)}")
+
+        sent_count = 0
         for reminder in reminders:
             try:
-                await self.send_reminder(reminder)
+                logger.info(f"📤 Отправка напоминания о событии {reminder['id']}")
+
+                await self.send_event_reminder(reminder)
+                sent_count += 1
 
                 # Помечаем напоминание как отправленное
                 cursor.execute(
-                    "UPDATE reminders SET reminder_sent = 1 WHERE id = ?",
+                    "UPDATE event_reminders SET reminder_sent = 1 WHERE id = ?",
                     (reminder["id"],)
                 )
                 conn.commit()
+                logger.info(f"✅ Напоминание о событии {reminder['id']} отправлено и помечено")
 
             except Exception as e:
-                logger.error(f"Ошибка при отправке напоминания {reminder['id']}: {e}")
+                logger.error(f"❌ Ошибка при отправке напоминания о событии {reminder['id']}: {e}", exc_info=True)
 
         conn.close()
 
-    async def send_reminder(self, reminder):
-        """Отправка конкретного напоминания"""
+        if sent_count > 0:
+            logger.info(f"🎉 Отправлено {sent_count} напоминаний о событиях")
+
+    async def send_event_reminder(self, reminder):
+        """Отправка конкретного напоминания о событии"""
         try:
-            event_time = datetime.strptime(reminder["event_datetime"], "%Y-%m-%d %H:%M")
+            # Преобразуем sqlite3.Row в словарь
+            reminder_dict = dict(reminder)
+
+            event_time = datetime.strptime(reminder_dict["event_datetime"], "%Y-%m-%d %H:%M")
             now = datetime.now()
 
             # Вычисляем оставшееся время
@@ -189,19 +203,19 @@ class EventReminderService:
             formatted_time = event_time.strftime("%d.%m.%Y в %H:%M")
 
             # Определяем текст в зависимости от времени до события
-            reminder_type = reminder["reminder_type"]
+            reminder_type = reminder_dict["reminder_type"]
             time_text = self.get_time_text(reminder_type, time_left)
 
             # Создаем сообщение
             message = f"🔔 <b>Напоминание о событии!</b>\n\n"
-            message += f"📝 <b>{reminder['title']}</b>\n"
+            message += f"📝 <b>{reminder_dict['title']}</b>\n"
             message += f"📅 <b>Когда:</b> {formatted_time}\n"
 
-            if reminder["location"]:
-                message += f"📍 <b>Где:</b> {reminder['location']}\n"
+            if reminder_dict.get("location"):
+                message += f"📍 <b>Где:</b> {reminder_dict['location']}\n"
 
-            if reminder["description"]:
-                desc = reminder["description"]
+            if reminder_dict.get("description"):
+                desc = reminder_dict["description"]
                 if len(desc) > 100:
                     desc = desc[:100] + "..."
                 message += f"📄 <b>Описание:</b> {desc}\n"
@@ -216,32 +230,43 @@ class EventReminderService:
 
             # Отправляем сообщение
             await self.bot.send_message(
-                chat_id=reminder["telegram_id"],
+                chat_id=reminder_dict["telegram_id"],
                 text=message,
                 parse_mode="HTML"
             )
 
-            logger.info(f"Отправлено напоминание пользователю {reminder['telegram_id']} о событии {reminder['title']}")
+            logger.info(f"Отправлено напоминание пользователю {reminder_dict['telegram_id']} о событии {reminder_dict['title']}")
 
         except Exception as e:
-            logger.error(f"Ошибка при формировании напоминания: {e}")
+            logger.error(f"Ошибка при формировании напоминания о событии: {e}")
             raise
 
     def get_time_text(self, reminder_type: str, time_left: timedelta) -> str:
         """Получить текстовое представление оставшегося времени"""
+        # Для напоминаний о событиях показываем текст в зависимости от типа напоминания
+        # а не от точного оставшегося времени
+
         if reminder_type == "0.5h":
-            minutes = int(time_left.total_seconds() / 60)
-            return f"{minutes} минут"
+            return "30 минут"
         elif reminder_type == "1h":
-            hours = int(time_left.total_seconds() / 3600)
-            minutes = int((time_left.total_seconds() % 3600) / 60)
-            if minutes > 0:
-                return f"{hours} ч {minutes} мин"
-            return f"{hours} час"
+            return "1 час"
+        elif reminder_type == "3h":
+            return "3 часа"
+        elif reminder_type == "6h":
+            return "6 часов"
+        elif reminder_type == "12h":
+            return "12 часов"
+        elif reminder_type == "24h":
+            return "24 часа"
         else:
-            # Для других типов показываем в часах
+            # Если неизвестный тип, показываем реальное время
             hours = int(time_left.total_seconds() / 3600)
-            return f"{hours} часов"
+            if hours == 1:
+                return "1 час"
+            elif 2 <= hours <= 4:
+                return f"{hours} часа"
+            else:
+                return f"{hours} часов"
 
     async def cleanup_old_reminders(self):
         """Очистка старых напоминаний"""
@@ -251,7 +276,7 @@ class EventReminderService:
         week_ago = datetime.now() - timedelta(days=7)
 
         cursor.execute(
-            "DELETE FROM reminders WHERE reminder_time < ?",
+            "DELETE FROM event_reminders WHERE reminder_time < ?",
             (week_ago.strftime("%Y-%m-%d %H:%M"),)
         )
 
@@ -260,7 +285,7 @@ class EventReminderService:
         conn.close()
 
         if deleted_count > 0:
-            logger.info(f"Удалено {deleted_count} старых напоминаний")
+            logger.info(f"Удалено {deleted_count} старых напоминаний о событиях")
 
 
 # Синглтон экземпляр

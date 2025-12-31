@@ -43,9 +43,73 @@ except ImportError as e:
     sys.exit(1)
 
 
+# В функции on_startup():
+async def on_startup():
+    """Действия при запуске бота"""
+    logging.info("🚀 Запуск сервисов напоминаний...")
+
+    # Инициализируем и запускаем сервисы напоминаний
+    from src.event_reminders import get_event_reminder_service
+    from src.task_reminders import get_task_reminder_service
+
+    try:
+        # Сервис напоминаний о событиях
+        event_reminder_service = get_event_reminder_service(bot)
+        if event_reminder_service:
+            asyncio.create_task(event_reminder_service.start())
+            logging.info("✅ Сервис напоминаний о событиях запущен")
+
+            # Запускаем немедленную проверку для отладки
+            asyncio.create_task(event_reminder_service.check_upcoming_events())
+            logging.info("🔍 Запущена проверка предстоящих событий")
+
+        # Сервис напоминаний о задачах
+        task_reminder_service = get_task_reminder_service(bot)
+        if task_reminder_service:
+            asyncio.create_task(task_reminder_service.start())
+            logging.info("✅ Сервис напоминаний о задачах запущен")
+
+            # Запускаем немедленную проверку для отладки
+            asyncio.create_task(task_reminder_service.check_upcoming_deadlines())
+            logging.info("🔍 Запущена проверка предстоящих дедлайнов")
+
+    except Exception as e:
+        logging.error(f"❌ Ошибка при запуске сервисов напоминаний: {e}", exc_info=True)
+
+
+async def on_shutdown():
+    """Действия при остановке бота"""
+    logging.info("🛑 Остановка сервисов напоминаний...")
+
+    try:
+        from src.event_reminders import get_event_reminder_service
+        from src.task_reminders import get_task_reminder_service
+
+        # Останавливаем сервис напоминаний о событиях
+        event_reminder_service = get_event_reminder_service()
+        if event_reminder_service and event_reminder_service.running:
+            await event_reminder_service.stop()
+            logging.info("✅ Сервис напоминаний о событиях остановлен")
+
+        # Останавливаем сервис напоминаний о задачах
+        task_reminder_service = get_task_reminder_service()
+        if task_reminder_service and task_reminder_service.running:
+            await task_reminder_service.stop()
+            logging.info("✅ Сервис напоминаний о задачах остановлен")
+
+    except Exception as e:
+        logging.error(f"❌ Ошибка при остановке сервисов напоминаний: {e}")
+
+
 async def main():
     """Основная функция запуска бота"""
     logging.info("Бот запускается...")
+
+    # Регистрируем обработчики запуска и остановки
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
+
+    # Запускаем бота
     await dp.start_polling(bot)
 
 

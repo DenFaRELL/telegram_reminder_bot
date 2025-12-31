@@ -305,3 +305,50 @@ async def events_help_handler(callback: CallbackQuery):
     """Помощь по событиям через inline-кнопку"""
     await callback.answer()
     await show_events_help(callback.message)
+
+@router.message(Command("test_reminders"))
+async def handle_test_reminders(message: Message):
+    """Тестирование напоминаний"""
+    from src.event_reminders import get_event_reminder_service
+    from src.task_reminders import get_task_reminder_service
+
+    await message.answer("🔍 Тестирование напоминаний...")
+
+    # Принудительная проверка
+    event_service = get_event_reminder_service()
+    task_service = get_task_reminder_service()
+
+    if event_service:
+        await event_service.check_upcoming_events()
+        await message.answer("✅ Проверка событий выполнена")
+
+    if task_service:
+        await task_service.check_upcoming_deadlines()
+        await message.answer("✅ Проверка задач выполнена")
+
+    await message.answer("📊 Запущена фоновая отправка напоминаний")
+
+# В конце файла src/handlers/main.py добавьте:
+@router.message(Command("test_reminders"))
+async def handle_test_reminders(message: Message):
+    """Тестирование напоминаний"""
+    from src.event_reminders import get_event_reminder_service
+    from src.task_reminders import get_task_reminder_service
+
+    await message.answer("🔍 Тестирование напоминаний...")
+
+    # Принудительная проверка
+    event_service = get_event_reminder_service()
+    task_service = get_task_reminder_service()
+
+    if event_service:
+        await event_service.check_upcoming_events()
+        await event_service.send_scheduled_reminders()
+        await message.answer("✅ Проверка событий выполнена")
+
+    if task_service:
+        await task_service.check_upcoming_deadlines()
+        await task_service.send_scheduled_reminders()
+        await message.answer("✅ Проверка задач выполнена")
+
+    await message.answer("📊 Запущена фоновая отправка напоминаний")

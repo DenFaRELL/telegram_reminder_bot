@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 
 from src.database import get_connection
+from src.task_reminders import get_task_reminder_service
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +35,15 @@ def validate_deadline(deadline: str) -> tuple[bool, str]:
     if not deadline or deadline.lower() == "нет":
         return True, ""
 
+    # Нормализуем для проверки
+    normalized = normalize_date_for_db(deadline)
+
     try:
-        datetime.strptime(deadline, "%Y-%m-%d")
+        # Теперь проверяем нормализованную дату
+        datetime.strptime(normalized, "%Y-%m-%d")
         return True, ""
     except ValueError:
-        return False, "Неверный формат даты! Используйте ГГГГ-ММ-ДД"
+        return False, "Неверный формат даты! Используйте ГГГГ-ММ-ДД, ДД.ММ.ГГГГ или ДД/ММ/ГГГГ"
 
 
 def validate_priority(priority: str) -> tuple[bool, str]:
@@ -52,12 +57,46 @@ def validate_priority(priority: str) -> tuple[bool, str]:
 # ==================== ОПЕРАЦИИ С БАЗОЙ ДАННЫХ ====================
 
 
+def normalize_date_for_db(date_str: str):
+    """Нормализует дату для сохранения в БД: из любого формата в ГГГГ-ММ-ДД"""
+    if not date_str or date_str.lower() == "нет":
+        return None  # Возвращаем None, а не строку 'None'
+
+    try:
+        # Пробуем разные форматы
+        for fmt in ["%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"]:
+            try:
+                date_obj = datetime.strptime(date_str, fmt)
+                return date_obj.strftime("%Y-%m-%d")  # Всегда возвращаем ГГГГ-ММ-ДД
+            except ValueError:
+                continue
+
+        # Если не распарсилось, пробуем разобрать вручную
+        parts = date_str.split('-')
+        if len(parts) == 3:
+            year = parts[0]
+            month = parts[1].zfill(2)  # Добавляем ведущий ноль
+            day = parts[2].zfill(2)    # Добавляем ведущий ноль
+            return f"{year}-{month}-{day}"
+
+        # Если всё плохо - возвращаем как есть (будет ошибка при валидации)
+        return date_str
+    except Exception:
+        return date_str
+
+
 def save_task(user_id: int, data: dict) -> tuple[bool, int, str]:
     """Сохранение задачи в базу данных"""
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
+        deadline = data.get("deadline")
+
+        # НОРМАЛИЗУЕМ дату перед сохранением
+        if deadline:
+            deadline = normalize_date_for_db(deadline)
+
         cursor.execute(
             """
             INSERT INTO tasks (user_id, title, description, deadline, priority, is_completed)
@@ -67,7 +106,7 @@ def save_task(user_id: int, data: dict) -> tuple[bool, int, str]:
                 user_id,
                 data["title"],
                 data.get("description"),
-                data.get("deadline"),
+                deadline,
                 data.get("priority", "medium"),
                 False,
             ),
@@ -100,6 +139,9 @@ def update_task(task_id: int, field: str, value) -> tuple[bool, str]:
         elif field == "deadline":
             if value is None or (isinstance(value, str) and value.lower() == "нет"):
                 value = None
+            else:
+                # НОРМАЛИЗУЕМ дату перед сохранением
+                value = normalize_date_for_db(value)
             cursor.execute(
                 "UPDATE tasks SET deadline = ? WHERE id = ?", (value, task_id)
             )

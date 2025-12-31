@@ -22,19 +22,14 @@ def validate_datetime(datetime_str: str) -> tuple[bool, str, datetime]:
         return False, "Дата и время не могут быть пустыми", None
 
     try:
-        # Пробуем разные форматы
-        formats = ["%Y-%m-%d %H:%M", "%d.%m.%Y %H:%M", "%d/%m/%Y %H:%M"]
+        # Нормализуем для проверки
+        normalized = normalize_datetime_for_db(datetime_str)
 
-        event_datetime = None
-        for fmt in formats:
-            try:
-                event_datetime = datetime.strptime(datetime_str, fmt)
-                break
-            except ValueError:
-                continue
+        if not normalized:
+            return False, "Неверный формат даты/времени", None
 
-        if event_datetime is None:
-            return False, "Неверный формат даты/времени. Используйте: ГГГГ-ММ-ДД ЧЧ:ММ (пример: 2024-12-31 18:30)", None
+        # Теперь пробуем распарсить нормализованную строку
+        event_datetime = datetime.strptime(normalized, "%Y-%m-%d %H:%M")
 
         # Проверяем, что дата не в прошлом
         if event_datetime < datetime.now():
@@ -76,14 +71,41 @@ def validate_recurrence(recurrence: str) -> tuple[bool, str]:
     return True, ""
 
 
+def normalize_datetime_for_db(datetime_str: str) -> str:
+    """Нормализует дату и время для сохранения в БД: в ГГГГ-ММ-ДД ЧЧ:ММ"""
+    if not datetime_str or datetime_str.lower() == "нет":
+        return None
+
+    try:
+        # Пробуем разные форматы даты и времени
+        for fmt in ["%Y-%m-%d %H:%M", "%d.%m.%Y %H:%M", "%d/%m/%Y %H:%M"]:
+            try:
+                datetime_obj = datetime.strptime(datetime_str, fmt)
+                return datetime_obj.strftime("%Y-%m-%d %H:%M")  # Всегда ГГГГ-ММ-ДД ЧЧ:ММ
+            except ValueError:
+                continue
+
+        # Если не распарсилось, возвращаем как есть (будет ошибка при валидации)
+        return datetime_str
+    except Exception:
+        return datetime_str
+
+
 def save_event(user_id: int, data: dict) -> tuple[bool, int, str]:
     """Сохранение события в базу данных"""
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
-        # Преобразуем datetime в строку для базы данных
-        event_datetime_str = data["event_datetime"].strftime("%Y-%m-%d %H:%M") if isinstance(data["event_datetime"], datetime) else data["event_datetime"]
+        # Нормализуем дату и время перед сохранением
+        event_datetime = data.get("event_datetime")
+        if event_datetime:
+            if isinstance(event_datetime, datetime):
+                event_datetime_str = event_datetime.strftime("%Y-%m-%d %H:%M")
+            else:
+                event_datetime_str = normalize_datetime_for_db(event_datetime)
+        else:
+            event_datetime_str = None
 
         cursor.execute(
             """
@@ -121,9 +143,12 @@ def update_event(event_id: int, field: str, value) -> tuple[bool, str]:
         if value is None or (isinstance(value, str) and value.lower() == "нет"):
             value = None
 
-        # Для datetime преобразуем в строку
-        if field == "event_datetime" and isinstance(value, datetime):
-            value = value.strftime("%Y-%m-%d %H:%M")
+        # Для datetime нормализуем
+        if field == "event_datetime":
+            if isinstance(value, datetime):
+                value = value.strftime("%Y-%m-%d %H:%M")
+            elif value:
+                value = normalize_datetime_for_db(value)
 
         if field == "title":
             cursor.execute(
