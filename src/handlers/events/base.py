@@ -1,7 +1,6 @@
 # src/handlers/events/base.py
 """Базовые функции для работы с событиями"""
 
-import re
 from datetime import datetime
 
 from src.database import get_connection
@@ -38,7 +37,11 @@ def validate_datetime(datetime_str: str) -> tuple[bool, str, datetime]:
         return True, "", event_datetime
 
     except Exception:
-        return False, "Неверный формат даты/времени. Используйте: ГГГГ-ММ-ДД ЧЧ:ММ (пример: 2024-12-31 18:30)", None
+        return (
+            False,
+            "Неверный формат даты/времени. Используйте: ГГГГ-ММ-ДД ЧЧ:ММ (пример: 2024-12-31 18:30)",
+            None,
+        )
 
 
 def validate_location(location: str) -> tuple[bool, str]:
@@ -67,7 +70,10 @@ def validate_recurrence(recurrence: str) -> tuple[bool, str]:
     """Проверка правила повторяемости"""
     valid_recurrences = ["none", "daily", "weekly", "monthly", "yearly"]
     if recurrence not in valid_recurrences:
-        return False, f"Неверное правило повторяемости. Доступные: {', '.join(valid_recurrences)}"
+        return (
+            False,
+            f"Неверное правило повторяемости. Доступные: {', '.join(valid_recurrences)}",
+        )
     return True, ""
 
 
@@ -81,7 +87,9 @@ def normalize_datetime_for_db(datetime_str: str) -> str:
         for fmt in ["%Y-%m-%d %H:%M", "%d.%m.%Y %H:%M", "%d/%m/%Y %H:%M"]:
             try:
                 datetime_obj = datetime.strptime(datetime_str, fmt)
-                return datetime_obj.strftime("%Y-%m-%d %H:%M")  # Всегда ГГГГ-ММ-ДД ЧЧ:ММ
+                return datetime_obj.strftime(
+                    "%Y-%m-%d %H:%M"
+                )  # Всегда ГГГГ-ММ-ДД ЧЧ:ММ
             except ValueError:
                 continue
 
@@ -167,11 +175,10 @@ def update_event(event_id: int, field: str, value) -> tuple[bool, str]:
                 "UPDATE events SET location = ? WHERE id = ?", (value, event_id)
             )
         elif field == "recurrence_rule":
-            # Обновляем оба поля: recurrence_rule и is_recurring
             is_recurring = value != "none"
             cursor.execute(
                 "UPDATE events SET recurrence_rule = ?, is_recurring = ? WHERE id = ?",
-                (value if value != "none" else None, is_recurring, event_id)
+                (value if value != "none" else None, is_recurring, event_id),
             )
 
         conn.commit()
@@ -234,27 +241,29 @@ def format_event_details(event: dict) -> str:
     response += f"📝 <b>Название:</b> {event['title']}\n"
 
     # Форматируем дату и время
-    if event.get('event_datetime'):
+    if event.get("event_datetime"):
         try:
-            event_dt = datetime.strptime(event['event_datetime'], "%Y-%m-%d %H:%M")
-            response += f"📅 <b>Дата и время:</b> {event_dt.strftime('%d.%m.%Y %H:%M')}\n"
+            event_dt = datetime.strptime(event["event_datetime"], "%Y-%m-%d %H:%M")
+            response += (
+                f"📅 <b>Дата и время:</b> {event_dt.strftime('%d.%m.%Y %H:%M')}\n"
+            )
         except:
             response += f"📅 <b>Дата и время:</b> {event['event_datetime']}\n"
 
-    if event.get('location'):
+    if event.get("location"):
         response += f"📍 <b>Место:</b> {event['location']}\n"
 
-    if event.get('description'):
+    if event.get("description"):
         response += f"📄 <b>Описание:</b> {event['description']}\n"
 
     # Информация о повторяемости
-    if event.get('is_recurring') and event.get('recurrence_rule'):
+    if event.get("is_recurring") and event.get("recurrence_rule"):
         recurrence_text = {
             "daily": "Ежедневно",
             "weekly": "Еженедельно",
             "monthly": "Ежемесячно",
-            "yearly": "Ежегодно"
-        }.get(event['recurrence_rule'], event['recurrence_rule'])
+            "yearly": "Ежегодно",
+        }.get(event["recurrence_rule"], event["recurrence_rule"])
         response += f"🔄 <b>Повторяемость:</b> {recurrence_text}\n"
 
     return response

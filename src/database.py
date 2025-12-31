@@ -1,8 +1,6 @@
 # src/database.py
-import asyncio
 import os
 import sqlite3
-import sys
 from datetime import datetime
 
 
@@ -92,7 +90,8 @@ def init_database():
     )
 
     # Таблица для напоминаний о событиях
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS event_reminders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id INTEGER NOT NULL,
@@ -101,10 +100,12 @@ def init_database():
             reminder_sent BOOLEAN DEFAULT 0,
             FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
         )
-    """)
+    """
+    )
 
     # Таблица для напоминаний о задачах
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS task_reminders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             task_id INTEGER NOT NULL,
@@ -113,17 +114,18 @@ def init_database():
             reminder_sent BOOLEAN DEFAULT 0,
             FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
         )
-    """)
+    """
+    )
 
     # Добавляем поля для отслеживания напоминаний, если их нет
     cursor.execute("PRAGMA table_info(events)")
     events_columns = [col[1] for col in cursor.fetchall()]
-    if 'last_reminder_sent' not in events_columns:
+    if "last_reminder_sent" not in events_columns:
         cursor.execute("ALTER TABLE events ADD COLUMN last_reminder_sent DATETIME")
 
     cursor.execute("PRAGMA table_info(tasks)")
     tasks_columns = [col[1] for col in cursor.fetchall()]
-    if 'last_reminder_sent' not in tasks_columns:
+    if "last_reminder_sent" not in tasks_columns:
         cursor.execute("ALTER TABLE tasks ADD COLUMN last_reminder_sent DATETIME")
 
     # Создаем индексы для ускорения запросов

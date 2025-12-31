@@ -45,6 +45,7 @@ async def show_events_list(message: Message, user_id: int):
         # Форматируем дату
         try:
             from datetime import datetime
+
             dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
             formatted_date = dt.strftime("%d.%m.%Y %H:%M")
         except:
@@ -102,6 +103,7 @@ async def events_page_handler(callback: CallbackQuery):
         # Форматируем дату
         try:
             from datetime import datetime
+
             dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
             formatted_date = dt.strftime("%d.%m.%Y %H:%M")
         except:

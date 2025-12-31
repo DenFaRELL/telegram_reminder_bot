@@ -7,12 +7,7 @@ from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 
-from src.handlers.tasks.base import (
-    format_task_details,
-    format_task_preview,
-    get_task,
-    get_user_tasks,
-)
+from src.handlers.tasks.base import format_task_details, get_task, get_user_tasks
 from src.keyboards import (
     get_task_detail_keyboard,
     get_tasks_list_keyboard,
@@ -36,17 +31,9 @@ async def show_tasks_list(message: Message, user_id: int):
         all_tasks = get_user_tasks(user_id, only_active=False)
         completed_tasks = [t for t in all_tasks if t.get("is_completed") == 1]
 
-        # === ОТЛАДКА завершенных задач ===
-        logger.info(f"Все задачи (all_tasks): {len(all_tasks)} шт")
-        logger.info(f"Активные задачи: {len(active_tasks)} шт")
-        logger.info(f"Завершенные задачи: {len(completed_tasks)} шт")
-
-        # Выведите ID завершенных задач
-        completed_ids = [t['id'] for t in completed_tasks]
-        logger.info(f"ID завершенных задач: {completed_ids}")
-        # === КОНЕЦ ОТЛАДКИ ===
-
-        logger.info(f"Активных задач: {len(active_tasks)}, завершенных: {len(completed_tasks)}")
+        logger.info(
+            f"Активных задач: {len(active_tasks)}, завершенных: {len(completed_tasks)}"
+        )
 
         # Кэшируем активные задачи для пагинации
         user_tasks_cache[user_id] = active_tasks
@@ -86,7 +73,9 @@ async def show_tasks_list(message: Message, user_id: int):
                         else:
                             response += f"📅 <i>До: {deadline_str}</i>\n"
                     except Exception as e:
-                        logger.error(f"Ошибка форматирования даты {task['deadline']}: {e}")
+                        logger.error(
+                            f"Ошибка форматирования даты {task['deadline']}: {e}"
+                        )
                         response += f"📅 <i>До: {task['deadline']}</i>\n"
 
                     priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
@@ -104,13 +93,19 @@ async def show_tasks_list(message: Message, user_id: int):
                 recent_completed.reverse()  # Переворачиваем, чтобы самые новые были первыми
 
                 for i, task in enumerate(recent_completed, 1):
-                    title = task["title"][:25] + "..." if len(task["title"]) > 25 else task["title"]
+                    title = (
+                        task["title"][:25] + "..."
+                        if len(task["title"]) > 25
+                        else task["title"]
+                    )
                     response += f"✅ <b>{title}</b>\n"
 
                     if task.get("deadline"):
                         # Форматируем дату из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
                         try:
-                            deadline_date = datetime.strptime(task["deadline"], "%Y-%m-%d")
+                            deadline_date = datetime.strptime(
+                                task["deadline"], "%Y-%m-%d"
+                            )
                             formatted_deadline = deadline_date.strftime("%d.%m.%Y")
                             response += f"📅 <i>До: {formatted_deadline}</i>\n"
                         except:
@@ -153,9 +148,7 @@ async def handle_view_task(callback: CallbackQuery):
 
         response = format_task_details(task)
         await callback.message.answer(
-            response,
-            reply_markup=get_task_detail_keyboard(task_id),
-            parse_mode="HTML"
+            response, reply_markup=get_task_detail_keyboard(task_id), parse_mode="HTML"
         )
     except Exception as e:
         logger.error(f"Ошибка в handle_view_task: {e}")
@@ -168,7 +161,9 @@ async def handle_tasks_page(callback: CallbackQuery):
     try:
         start_index = int(callback.data.split("_")[2])
         user_id = callback.from_user.id
-        logger.info(f"Переключение страницы задач. Пользователь: {user_id}, старт: {start_index}")
+        logger.info(
+            f"Переключение страницы задач. Пользователь: {user_id}, старт: {start_index}"
+        )
 
         await callback.answer()
 
@@ -210,9 +205,7 @@ async def handle_tasks_page(callback: CallbackQuery):
                 task.get("priority", "medium"), "⚪"
             )
 
-            response += (
-                f"{priority_emoji} <i>Приоритет: {task.get('priority', 'medium')}</i>\n\n"
-            )
+            response += f"{priority_emoji} <i>Приоритет: {task.get('priority', 'medium')}</i>\n\n"
 
         await callback.message.answer(
             response,

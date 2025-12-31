@@ -4,12 +4,7 @@ import logging
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import (
-    CallbackQuery,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-)
+from aiogram.types import CallbackQuery, Message
 
 from src.keyboards import (
     get_delete_event_confirmation_keyboard,
@@ -28,7 +23,6 @@ from .base import (
     validate_description,
     validate_event_title,
     validate_location,
-    validate_recurrence,
 )
 
 router = Router()
@@ -57,9 +51,7 @@ async def handle_edit_event(callback: CallbackQuery):
         response += "\n<b>Выберите что изменить:</b>"
 
         await callback.message.answer(
-            response,
-            reply_markup=get_edit_event_keyboard(event_id),
-            parse_mode="HTML"
+            response, reply_markup=get_edit_event_keyboard(event_id), parse_mode="HTML"
         )
     except Exception as e:
         logger.error(f"Ошибка в handle_edit_event: {e}")
@@ -88,6 +80,7 @@ async def handle_delete_event(callback: CallbackQuery):
         event_datetime = event["event_datetime"]
         try:
             from datetime import datetime
+
             dt = datetime.strptime(event_datetime, "%Y-%m-%d %H:%M")
             formatted_date = dt.strftime("%d.%m.%Y %H:%M")
         except:
@@ -123,6 +116,7 @@ async def handle_confirm_delete_event(callback: CallbackQuery):
             await callback.message.answer("✅ Событие удалено!")
             # Вернуться к списку событий
             from .view import show_events_list
+
             user_id = callback.from_user.id
             await show_events_list(callback.message, user_id)
         else:
@@ -135,7 +129,11 @@ async def handle_confirm_delete_event(callback: CallbackQuery):
 # ==================== РЕДАКТИРОВАНИЕ ПОЛЕЙ ====================
 
 
-@router.callback_query(F.data.regexp(r"^edit_event_field_(title|description|datetime|location|recurrence)_[0-9]+$"))
+@router.callback_query(
+    F.data.regexp(
+        r"^edit_event_field_(title|description|datetime|location|recurrence)_[0-9]+$"
+    )
+)
 async def handle_edit_event_field(callback: CallbackQuery, state: FSMContext):
     """Выбрано поле события для редактирования"""
     try:
@@ -184,6 +182,7 @@ async def handle_edit_event_field(callback: CallbackQuery, state: FSMContext):
             if field_name == "datetime" and current_value:
                 try:
                     from datetime import datetime
+
                     dt = datetime.strptime(current_value, "%Y-%m-%d %H:%M")
                     current_value = dt.strftime("%d.%m.%Y %H:%M")
                 except:
@@ -201,7 +200,9 @@ async def handle_edit_event_field(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Ошибка при редактировании поля")
 
 
-@router.callback_query(F.data.regexp(r"^select_recurrence_(none|daily|weekly|monthly|yearly)(_[0-9]+)?$"))
+@router.callback_query(
+    F.data.regexp(r"^select_recurrence_(none|daily|weekly|monthly|yearly)(_[0-9]+)?$")
+)
 async def handle_select_recurrence(callback: CallbackQuery):
     """Выбрано новое правило повторяемости"""
     try:
@@ -231,7 +232,7 @@ async def handle_select_recurrence(callback: CallbackQuery):
             "daily": "📅 Ежедневно",
             "weekly": "📅 Еженедельно",
             "monthly": "📅 Ежемесячно",
-            "yearly": "📅 Ежегодно"
+            "yearly": "📅 Ежегодно",
         }.get(recurrence_type, recurrence_type)
 
         await callback.answer(f"Выбрано: {recurrence_text}")
@@ -271,7 +272,9 @@ async def handle_event_field_value_input(message: Message, state: FSMContext):
         field_name = data["field_name"]
         new_value = message.text.strip()
 
-        logger.info(f"Ввод нового значения для поля {field_name} события ID: {event_id}")
+        logger.info(
+            f"Ввод нового значения для поля {field_name} события ID: {event_id}"
+        )
 
         # Валидация в зависимости от поля
         is_valid = True

@@ -29,9 +29,7 @@ async def handle_back_to_task(callback: CallbackQuery):
 
         response = format_task_details(task)
         await callback.message.answer(
-            response,
-            reply_markup=get_task_detail_keyboard(task_id),
-            parse_mode="HTML"
+            response, reply_markup=get_task_detail_keyboard(task_id), parse_mode="HTML"
         )
     except Exception as e:
         logger.error(f"Ошибка в handle_back_to_task: {e}")
@@ -46,6 +44,7 @@ async def handle_tasks_help(callback: CallbackQuery):
 
         await callback.answer()
         from src.handlers.main import show_tasks_help
+
         await show_tasks_help(callback.message)
     except Exception as e:
         logger.error(f"Ошибка в handle_tasks_help: {e}")

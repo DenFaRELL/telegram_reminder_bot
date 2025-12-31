@@ -18,7 +18,7 @@ from .view import router as view_router
 router = Router()
 logger = logging.getLogger(__name__)
 
-# Включаем все под-роутеры (важен порядок!)
+# Включаем все под-роутеры
 router.include_router(edit_router)
 router.include_router(add_router)
 router.include_router(view_router)
@@ -26,6 +26,7 @@ router.include_router(common_router)
 
 
 # ==================== ОСНОВНЫЕ КОМАНДЫ ====================
+
 
 @router.message(F.text == "✅ Задачи")
 async def handle_button_tasks_menu(message: Message):
@@ -54,6 +55,7 @@ async def handle_cmd_tasks(message: Message):
 
 
 # ==================== ДОПОЛНИТЕЛЬНЫЕ КОМАНДЫ ====================
+
 
 @router.message(Command("add_task"))
 async def handle_cmd_add_task(message: Message):
@@ -95,6 +97,7 @@ async def show_tasks_section(message: Message, user_id: int):
 
         # Импортируем здесь, чтобы избежать циклического импорта
         from .view import show_tasks_list
+
         await show_tasks_list(message, user_id)
 
     except Exception as e:

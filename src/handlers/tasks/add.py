@@ -1,4 +1,4 @@
-# src/handlers/tasks/add.py - ИСПРАВЛЕННЫЙ
+# src/handlers/tasks/add.py
 
 import logging
 from datetime import datetime
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 # ==================== НАЧАЛО ДОБАВЛЕНИЯ ====================
 
+
 @router.callback_query(F.data == "add_task_btn")
 async def handle_add_task_btn(callback: CallbackQuery, state: FSMContext):
     """Начать добавление задачи через кнопку"""
@@ -45,6 +46,7 @@ async def handle_add_task_btn(callback: CallbackQuery, state: FSMContext):
 
 
 # ==================== ОБРАБОТКА ПОЛЕЙ ====================
+
 
 @router.message(AddTaskStates.waiting_for_title)
 async def handle_task_title(message: Message, state: FSMContext):
@@ -115,8 +117,7 @@ async def handle_task_deadline(message: Message, state: FSMContext):
 
         await state.update_data(deadline=deadline)
         await message.answer(
-            "✅ <b>Дедлайн сохранён!</b>\n\n"
-            "🎯 <b>Выберите приоритет задачи:</b>",
+            "✅ <b>Дедлайн сохранён!</b>\n\n" "🎯 <b>Выберите приоритет задачи:</b>",
             reply_markup=get_priority_selection_keyboard(for_edit=False),
             parse_mode="HTML",
         )
@@ -129,7 +130,9 @@ async def handle_task_deadline(message: Message, state: FSMContext):
 # ==================== ВЫБОР ПРИОРИТЕТА ====================
 
 
-@router.callback_query(AddTaskStates.waiting_for_priority, F.data.startswith("select_priority_"))
+@router.callback_query(
+    AddTaskStates.waiting_for_priority, F.data.startswith("select_priority_")
+)
 async def handle_select_priority_for_new(callback: CallbackQuery, state: FSMContext):
     """Обработка выбора приоритета для новой задачи"""
     try:
@@ -155,7 +158,7 @@ async def handle_select_priority_for_new(callback: CallbackQuery, state: FSMCont
             if data.get("deadline"):
                 # Форматируем дату из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
                 try:
-                    deadline_date = datetime.strptime(data['deadline'], "%Y-%m-%d")
+                    deadline_date = datetime.strptime(data["deadline"], "%Y-%m-%d")
                     formatted_deadline = deadline_date.strftime("%d.%m.%Y")
                     response += f"📅 <b>Дедлайн:</b> {formatted_deadline}\n"
                 except:
@@ -169,8 +172,7 @@ async def handle_select_priority_for_new(callback: CallbackQuery, state: FSMCont
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text="✅ Вернуться к задачам",
-                            callback_data="back_to_tasks"
+                            text="✅ Вернуться к задачам", callback_data="back_to_tasks"
                         )
                     ]
                 ]

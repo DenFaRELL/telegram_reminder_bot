@@ -27,7 +27,7 @@ async def back_to_event_handler(callback: CallbackQuery):
         await callback.message.answer(
             response,
             reply_markup=get_event_detail_keyboard(event_id),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
     except Exception as e:
         await callback.answer("❌ Ошибка при возврате к событию")
@@ -46,7 +46,6 @@ async def events_help_handler(callback: CallbackQuery):
 async def weekday_selection_done_handler(callback: CallbackQuery):
     """Завершение выбора дней недели"""
     await callback.answer("✅ Дни недели выбраны")
-    # Здесь можно добавить логику сохранения выбранных дней
     await callback.message.answer(
         "✅ Дни недели сохранены!\n\n"
         "Теперь вы можете продолжить настройку события или вернуться к нему позже."

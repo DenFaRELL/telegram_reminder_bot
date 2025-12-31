@@ -4,7 +4,6 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List
 
 from aiogram import Bot
 
@@ -61,7 +60,7 @@ class TaskReminderService:
             AND t.deadline IS NOT NULL
             ORDER BY t.deadline
             """,
-            (today, deadline_threshold)
+            (today, deadline_threshold),
         )
 
         tasks = cursor.fetchall()
@@ -71,7 +70,9 @@ class TaskReminderService:
 
         if tasks:
             for task in tasks:
-                logger.info(f"  - ID {task['id']}: '{task['title'][:20]}...' дедлайн {task['deadline']}")
+                logger.info(
+                    f"  - ID {task['id']}: '{task['title'][:20]}...' дедлайн {task['deadline']}"
+                )
 
         # Для каждой задачи проверяем нужно ли создавать напоминания
         for task in tasks:
@@ -81,14 +82,13 @@ class TaskReminderService:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT last_reminder_sent FROM tasks WHERE id = ?",
-                (task_id,)
+                "SELECT last_reminder_sent FROM tasks WHERE id = ?", (task_id,)
             )
             last_sent_result = cursor.fetchone()
             conn.close()
 
             last_sent = None
-            if last_sent_result and last_sent_result[0]:  # Проверяем есть ли значение в первом столбце
+            if last_sent_result and last_sent_result[0]:
                 last_sent = last_sent_result[0]
 
             should_process = True
@@ -100,16 +100,22 @@ class TaskReminderService:
                     hours_since_last = (now - last_sent_dt).total_seconds() / 3600
 
                     if hours_since_last < 12:
-                        logger.info(f"⏰ Задача {task_id} уже получала напоминания {hours_since_last:.1f} часов назад, пропускаем")
+                        logger.info(
+                            f"⏰ Задача {task_id} уже получала напоминания {hours_since_last:.1f} часов назад, пропускаем"
+                        )
                         should_process = False
                 except Exception as e:
                     logger.error(f"❌ Ошибка при разборе даты {last_sent}: {e}")
 
             if should_process:
-                logger.info(f"📋 Обработка задачи ID {task_id}: {task['title']} (дедлайн: {task['deadline']})")
+                logger.info(
+                    f"📋 Обработка задачи ID {task_id}: {task['title']} (дедлайн: {task['deadline']})"
+                )
                 await self.schedule_task_reminders(task)
             else:
-                logger.info(f"⏰ Пропускаем задачу {task_id} - напоминания уже отправлялись недавно")
+                logger.info(
+                    f"⏰ Пропускаем задачу {task_id} - напоминания уже отправлялись недавно"
+                )
 
     async def schedule_task_reminders(self, task):
         """Создание напоминаний для задачи"""
@@ -120,7 +126,9 @@ class TaskReminderService:
             now = datetime.now()
             today = now.date()
 
-            logger.info(f"🔍 Анализ задачи {task['id']}: дедлайн {deadline_date}, сейчас {now}")
+            logger.info(
+                f"🔍 Анализ задачи {task['id']}: дедлайн {deadline_date}, сейчас {now}"
+            )
 
             # Пропускаем просроченные задачи
             if deadline_date < now:
@@ -128,26 +136,29 @@ class TaskReminderService:
                 return
 
             # Вычисляем сколько дней осталось до дедлайна
-            # Для точного расчета используем timedelta с учетом времени
             time_until_deadline = deadline_date - now
             days_until_deadline = time_until_deadline.days
-            logger.info(f"📅 До дедлайна осталось: {days_until_deadline} дней и {time_until_deadline.seconds//3600} часов")
+            logger.info(
+                f"📅 До дедлайна осталось: {days_until_deadline} дней и {time_until_deadline.seconds//3600} часов"
+            )
 
             # Удаляем старые ненаправленные напоминания для этой задачи
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute(
                 "DELETE FROM task_reminders WHERE task_id = ? AND reminder_sent = 0",
-                (task["id"],)
+                (task["id"],),
             )
             conn.commit()
             conn.close()
-            logger.info(f"🧹 Удалены старые ненаправленные напоминания для задачи {task['id']}")
+            logger.info(
+                f"🧹 Удалены старые ненаправленные напоминания для задачи {task['id']}"
+            )
 
             reminder_schedule = [
-                (7, 9, 0, "7d"),    # За 7 дней в 9:00
-                (3, 9, 0, "3d"),    # За 3 дня в 9:00
-                (1, 9, 0, "1d"),    # За 1 день в 9:00
+                (7, 9, 0, "7d"),  # За 7 дней в 9:00
+                (3, 9, 0, "3d"),  # За 3 дня в 9:00
+                (1, 9, 0, "1d"),  # За 1 день в 9:00
                 (1, 21, 0, "12h"),  # За 12 часов в 21:00
             ]
 
@@ -161,11 +172,18 @@ class TaskReminderService:
 
                 if should_create:
                     reminder_date = deadline_date - timedelta(days=days_before)
-                    reminder_time = datetime.combine(reminder_date.date(), datetime.min.time().replace(hour=hour, minute=minute))
+                    reminder_time = datetime.combine(
+                        reminder_date.date(),
+                        datetime.min.time().replace(hour=hour, minute=minute),
+                    )
 
                     if reminder_time > now:
-                        logger.info(f"⏰ Создаем напоминание типа {reminder_type} на {reminder_time}")
-                        await self.create_reminder(task["id"], reminder_time, reminder_type)
+                        logger.info(
+                            f"⏰ Создаем напоминание типа {reminder_type} на {reminder_time}"
+                        )
+                        await self.create_reminder(
+                            task["id"], reminder_time, reminder_type
+                        )
                         created_count += 1
 
             # Обновляем время последнего напоминания
@@ -173,17 +191,24 @@ class TaskReminderService:
             cursor = conn.cursor()
             cursor.execute(
                 "UPDATE tasks SET last_reminder_sent = ? WHERE id = ?",
-                (now.strftime("%Y-%m-%d %H:%M"), task["id"])
+                (now.strftime("%Y-%m-%d %H:%M"), task["id"]),
             )
             conn.commit()
             conn.close()
 
-            logger.info(f"✅ Создано {created_count} напоминаний для задачи {task['id']}: {task['title']}")
+            logger.info(
+                f"✅ Создано {created_count} напоминаний для задачи {task['id']}: {task['title']}"
+            )
 
         except Exception as e:
-            logger.error(f"❌ Ошибка при создании напоминаний для задачи {task['id']}: {e}", exc_info=True)
+            logger.error(
+                f"❌ Ошибка при создании напоминаний для задачи {task['id']}: {e}",
+                exc_info=True,
+            )
 
-    async def create_reminder(self, task_id: int, reminder_time: datetime, reminder_type: str):
+    async def create_reminder(
+        self, task_id: int, reminder_time: datetime, reminder_type: str
+    ):
         """Создание записи о напоминании в БД"""
         conn = get_connection()
         cursor = conn.cursor()
@@ -194,7 +219,7 @@ class TaskReminderService:
             SELECT id FROM task_reminders
             WHERE task_id = ? AND reminder_type = ? AND reminder_sent = 0
             """,
-            (task_id, reminder_type)
+            (task_id, reminder_type),
         )
 
         existing = cursor.fetchone()
@@ -212,7 +237,9 @@ class TaskReminderService:
                 ),
             )
             conn.commit()
-            logger.info(f"Создано напоминание для задачи {task_id}: {reminder_type} в {reminder_time}")
+            logger.info(
+                f"Создано напоминание для задачи {task_id}: {reminder_type} в {reminder_time}"
+            )
 
         conn.close()
 
@@ -227,8 +254,8 @@ class TaskReminderService:
 
         logger.info(f"🔍 Проверка напоминаний, время: {now_local_str}")
 
-        # ИСПРАВЛЕННЫЙ ЗАПРОС: убрали strftime, сравниваем как строки
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT r.*, t.title, t.deadline, t.description, t.priority,
                 u.telegram_id, u.username
             FROM task_reminders r
@@ -238,7 +265,9 @@ class TaskReminderService:
             AND r.reminder_time <= ?
             AND t.is_completed = 0
             ORDER BY r.reminder_time
-        """, (now_local_str,))  # Используем формат без секунд
+        """,
+            (now_local_str,),
+        )
 
         reminders = cursor.fetchall()
 
@@ -247,7 +276,9 @@ class TaskReminderService:
         sent_count = 0
         for reminder in reminders:
             try:
-                logger.info(f"📤 Отправка напоминания {reminder['id']} для задачи {reminder['task_id']}")
+                logger.info(
+                    f"📤 Отправка напоминания {reminder['id']} для задачи {reminder['task_id']}"
+                )
 
                 await self.send_task_reminder(reminder)
                 sent_count += 1
@@ -255,13 +286,16 @@ class TaskReminderService:
                 # Помечаем напоминание как отправленное
                 cursor.execute(
                     "UPDATE task_reminders SET reminder_sent = 1 WHERE id = ?",
-                    (reminder["id"],)
+                    (reminder["id"],),
                 )
                 conn.commit()
                 logger.info(f"✅ Напоминание {reminder['id']} отправлено и помечено")
 
             except Exception as e:
-                logger.error(f"❌ Ошибка при отправке напоминания о задаче {reminder['id']}: {e}", exc_info=True)
+                logger.error(
+                    f"❌ Ошибка при отправке напоминания о задаче {reminder['id']}: {e}",
+                    exc_info=True,
+                )
 
         conn.close()
 
@@ -315,12 +349,12 @@ class TaskReminderService:
 
             # Отправляем сообщение
             await self.bot.send_message(
-                chat_id=reminder_dict["telegram_id"],
-                text=message,
-                parse_mode="HTML"
+                chat_id=reminder_dict["telegram_id"], text=message, parse_mode="HTML"
             )
 
-            logger.info(f"Отправлено напоминание о задаче {reminder_dict['task_id']} пользователю {reminder_dict['telegram_id']}")
+            logger.info(
+                f"Отправлено напоминание о задаче {reminder_dict['task_id']} пользователю {reminder_dict['telegram_id']}"
+            )
 
         except Exception as e:
             logger.error(f"Ошибка при формировании напоминания о задаче: {e}")
@@ -329,7 +363,7 @@ class TaskReminderService:
     def get_time_text(self, reminder_type: str, days_left: int) -> str:
         """Получить текстовое представление оставшегося времени"""
         if reminder_type == "12h":
-            return "12 часов"  # Это будет вечером перед дедлайном
+            return "12 часов"
         elif reminder_type == "1d":
             if days_left == 1:
                 return "1 день"
@@ -363,7 +397,7 @@ class TaskReminderService:
 
         cursor.execute(
             "DELETE FROM task_reminders WHERE reminder_time < ?",
-            (week_ago.strftime("%Y-%m-%d %H:%M"),)
+            (week_ago.strftime("%Y-%m-%d %H:%M"),),
         )
 
         deleted_count = cursor.rowcount
@@ -385,7 +419,7 @@ def get_task_reminder_service(bot: Bot = None) -> TaskReminderService:
         _task_reminder_service = TaskReminderService(bot)
     return _task_reminder_service
 
-# В конец файла src/task_reminders.py добавьте:
+
 async def manual_send_reminders(bot: Bot):
     """Ручная отправка напоминаний (для отладки)"""
     service = get_task_reminder_service(bot)

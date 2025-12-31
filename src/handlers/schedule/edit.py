@@ -5,12 +5,7 @@ import logging
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import (
-    CallbackQuery,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-)
+from aiogram.types import CallbackQuery, Message
 
 from src.handlers.schedule.base import (
     delete_lesson,
@@ -58,13 +53,15 @@ async def handle_edit_lesson(callback: CallbackQuery):
         await callback.message.answer(
             response,
             reply_markup=get_edit_lesson_keyboard(lesson_id),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
     except Exception as e:
         logger.error(f"Ошибка в handle_edit_lesson: {e}")
         await callback.answer("❌ Ошибка при редактировании")
 
+
 # ==================== УДАЛЕНИЕ ====================
+
 
 @router.callback_query(F.data.startswith("lesson_delete_"))
 async def handle_delete_lesson(callback: CallbackQuery):
@@ -95,6 +92,7 @@ async def handle_delete_lesson(callback: CallbackQuery):
         logger.error(f"Ошибка в handle_delete_lesson: {e}")
         await callback.answer("❌ Ошибка при удалении")
 
+
 @router.callback_query(F.data.startswith("lesson_confirm_delete_"))
 async def handle_confirm_delete_lesson(callback: CallbackQuery):
     """Подтверждение и выполнение удаления урока"""
@@ -109,6 +107,7 @@ async def handle_confirm_delete_lesson(callback: CallbackQuery):
             await callback.message.answer("✅ Урок удалён!")
             # Вернуться к списку расписания
             from .view import show_schedule_list
+
             user_id = callback.from_user.id
             await show_schedule_list(callback.message, user_id)
         else:
@@ -117,7 +116,9 @@ async def handle_confirm_delete_lesson(callback: CallbackQuery):
         logger.error(f"Ошибка в handle_confirm_delete_lesson: {e}")
         await callback.answer("❌ Ошибка при удалении")
 
+
 # ==================== РЕДАКТИРОВАНИЕ ПОЛЕЙ ====================
+
 
 @router.callback_query(F.data.startswith("edit_field_"))
 async def handle_edit_field(callback: CallbackQuery, state: FSMContext):
@@ -140,7 +141,9 @@ async def handle_edit_field(callback: CallbackQuery, state: FSMContext):
         if field_name == "day":
             await callback.message.answer(
                 "📅 <b>Выберите новый день недели:</b>",
-                reply_markup=get_day_selection_keyboard(for_edit=True, lesson_id=lesson_id),
+                reply_markup=get_day_selection_keyboard(
+                    for_edit=True, lesson_id=lesson_id
+                ),
                 parse_mode="HTML",
             )
         else:
@@ -167,6 +170,7 @@ async def handle_edit_field(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         logger.error(f"Ошибка в handle_edit_field: {e}")
         await callback.answer("❌ Ошибка при редактировании поля")
+
 
 @router.callback_query(F.data.startswith("select_day_"))
 async def handle_select_day(callback: CallbackQuery):
@@ -202,6 +206,7 @@ async def handle_select_day(callback: CallbackQuery):
         logger.error(f"Ошибка в handle_select_day: {e}")
         await callback.answer("❌ Ошибка при изменении дня")
 
+
 @router.message(EditLessonStates.waiting_for_field_value)
 async def handle_field_value_input(message: Message, state: FSMContext):
     """Обработка нового значения поля урока"""
@@ -223,7 +228,7 @@ async def handle_field_value_input(message: Message, state: FSMContext):
         elif field_name == "time":
             is_valid, error_msg, times = validate_time(new_value)
             if is_valid:
-                value_to_save = times  # (start_time, end_time)
+                value_to_save = times
         elif field_name == "build":
             is_valid, error_msg = validate_build(new_value)
             if is_valid and (not new_value or new_value.lower() == "нет"):

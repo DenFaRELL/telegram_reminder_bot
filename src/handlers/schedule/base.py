@@ -2,6 +2,7 @@
 """Базовые функции для работы с расписанием"""
 
 import re
+from typing import Optional, Tuple
 
 from src.database import get_connection
 
@@ -15,30 +16,73 @@ def validate_subject(subject: str) -> tuple[bool, str]:
     return True, ""
 
 
-def validate_time(time_str: str) -> tuple[bool, str, tuple]:
-    """Проверка времени занятия"""
+def validate_time(
+    time_str: str,
+) -> Tuple[bool, Optional[str], Optional[Tuple[str, str]]]:
+    """
+    Проверяет корректность формата времени.
+    Формат: 'HH:MM-HH:MM'
+
+    Возвращает:
+        (is_valid, error_message, (start_time, end_time))
+    """
+    if not time_str:
+        return False, "❌ Время не может быть пустым", None
+
     if "-" not in time_str:
-        return False, "Используйте формат: начало-конец\nПример: 08:30-10:05", ()
+        return False, "❌ Неправильный формат времени. Используйте: '09:00-10:30'", None
 
     try:
-        start_time, end_time = time_str.split("-")
-        start_time = start_time.strip()
-        end_time = end_time.strip()
+        start_str, end_str = time_str.split("-")
 
-        if ":" not in start_time or ":" not in end_time:
-            return False, "Неверный формат времени. Используйте ЧЧ:ММ", ()
+        # Проверяем формат времени (две цифры, двоеточие, две цифры)
+        time_pattern = r"^\d{2}:\d{2}$"
+        if not re.match(time_pattern, start_str) or not re.match(time_pattern, end_str):
+            return (
+                False,
+                "❌ Неправильный формат времени. Используйте: '09:00-10:30'",
+                None,
+            )
 
-        # Проверяем формат времени
-        time_pattern = r"^([0-1][0-9]|2[0-3]):([0-5][0-9])$"
-        if not re.match(time_pattern, start_time) or not re.match(
-            time_pattern, end_time
-        ):
-            return False, "Неверный формат времени. Используйте 24-часовой формат", ()
+        # Парсим часы и минуты
+        start_hour, start_minute = map(int, start_str.split(":"))
+        end_hour, end_minute = map(int, end_str.split(":"))
 
-        return True, "", (start_time, end_time)
+        # Проверяем корректность часов (0-23) и минут (0-59)
+        if not (0 <= start_hour <= 23):
+            return False, f"❌ Часы начала должны быть от 00 до 23: {start_hour}", None
+        if not (0 <= start_minute <= 59):
+            return (
+                False,
+                f"❌ Минуты начала должны быть от 00 до 59: {start_minute}",
+                None,
+            )
+        if not (0 <= end_hour <= 23):
+            return False, f"❌ Часы окончания должны быть от 00 до 23: {end_hour}", None
+        if not (0 <= end_minute <= 59):
+            return (
+                False,
+                f"❌ Минуты окончания должны быть от 00 до 59: {end_minute}",
+                None,
+            )
 
-    except Exception:
-        return False, "Неверный формат времени. Используйте: ЧЧ:ММ-ЧЧ:ММ", ()
+        # Проверяем что начальное время раньше конечного
+        # Конвертируем время в минуты для сравнения
+        start_total_minutes = start_hour * 60 + start_minute
+        end_total_minutes = end_hour * 60 + end_minute
+
+        if start_total_minutes >= end_total_minutes:
+            return (
+                False,
+                f"❌ Время начала ({start_str}) должно быть раньше времени окончания ({end_str})",
+                None,
+            )
+
+        # Все проверки пройдены
+        return True, "", (start_str, end_str)
+
+    except ValueError as e:
+        return False, f"❌ Ошибка разбора времени: {str(e)}", None
 
 
 def validate_build(build: str) -> tuple[bool, str]:
@@ -52,7 +96,7 @@ def validate_build(build: str) -> tuple[bool, str]:
     if len(build) > 10:
         return False, "Номер корпуса слишком длинный"
 
-    return True, ""  # ВНИМАНИЕ: добавьте возврат кортежа с пустой строкой
+    return True, ""
 
 
 def validate_room(room: str) -> tuple[bool, str]:
@@ -66,7 +110,7 @@ def validate_room(room: str) -> tuple[bool, str]:
     if len(room) > 10:
         return False, "Номер аудитории слишком длинный"
 
-    return True, ""  # ВНИМАНИЕ: добавьте возврат кортежа с пустой строкой
+    return True, ""
 
 
 def validate_teacher(teacher: str) -> tuple[bool, str]:
@@ -85,7 +129,7 @@ def validate_teacher(teacher: str) -> tuple[bool, str]:
     if len(teacher) > 100:
         return False, "ФИО слишком длинное"
 
-    return True, ""  # ВНИМАНИЕ: добавьте возврат кортежа с пустой строкой
+    return True, ""
 
 
 def save_lesson(user_id: int, data: dict) -> tuple[bool, int, str]:

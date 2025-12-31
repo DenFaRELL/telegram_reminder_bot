@@ -1,5 +1,4 @@
 # src/keyboards.py
-import re
 from datetime import datetime
 
 from aiogram.types import (
@@ -186,7 +185,8 @@ def get_delete_confirmation_keyboard(lesson_id):
     keyboard = [
         [
             InlineKeyboardButton(
-                text="✅ Да, удалить", callback_data=f"lesson_confirm_delete_{lesson_id}"
+                text="✅ Да, удалить",
+                callback_data=f"lesson_confirm_delete_{lesson_id}",
             ),
             InlineKeyboardButton(
                 text="❌ Нет, вернуться", callback_data=f"back_to_lesson_{lesson_id}"
@@ -356,12 +356,10 @@ def get_task_detail_keyboard(task_id):
 
 def get_edit_task_keyboard(task_id):
     """Клавиатура для редактирования задачи"""
-    # Убедитесь, что task_id передается правильно
     keyboard = [
         [
             InlineKeyboardButton(
-                text="📝 Название",
-                callback_data=f"edit_task_field_title_{task_id}"  # Должно быть edit_task_field_title_25
+                text="📝 Название", callback_data=f"edit_task_field_title_{task_id}"
             ),
             InlineKeyboardButton(
                 text="📄 Описание",
@@ -370,18 +368,15 @@ def get_edit_task_keyboard(task_id):
         ],
         [
             InlineKeyboardButton(
-                text="📅 Дедлайн",
-                callback_data=f"edit_task_field_deadline_{task_id}"
+                text="📅 Дедлайн", callback_data=f"edit_task_field_deadline_{task_id}"
             ),
             InlineKeyboardButton(
-                text="🎯 Приоритет",
-                callback_data=f"edit_task_field_priority_{task_id}"
+                text="🎯 Приоритет", callback_data=f"edit_task_field_priority_{task_id}"
             ),
         ],
         [
             InlineKeyboardButton(
-                text="🔙 Назад к задаче",
-                callback_data=f"back_to_task_{task_id}"
+                text="🔙 Назад к задаче", callback_data=f"back_to_task_{task_id}"
             )
         ],
     ]
@@ -474,12 +469,9 @@ def get_events_selection_keyboard(events, start_index=0):
         # Форматируем дату из ГГГГ-ММ-ДД ЧЧ:ММ в ДД.ММ.ГГГГ
         event_date_time = event["event_datetime"]
         try:
-            # Пробуем распарсить дату и время
             dt = datetime.strptime(event_date_time, "%Y-%m-%d %H:%M")
-            # Берем только дату в формате ДД.ММ.ГГГГ
             formatted_date = dt.strftime("%d.%m.%Y")
         except Exception:
-            # Если не удалось, берем первые 10 символов как есть
             formatted_date = event_date_time[:10]
 
         button_text = f"{start_index + i}. {formatted_date} - {title}"
@@ -529,18 +521,15 @@ def get_event_detail_keyboard(event_id):
     keyboard = [
         [
             InlineKeyboardButton(
-                text="✏️ Редактировать",
-                callback_data=f"edit_event_{event_id}"  # Важно: edit_event_{event_id}
+                text="✏️ Редактировать", callback_data=f"edit_event_{event_id}"
             ),
             InlineKeyboardButton(
-                text="🗑️ Удалить",
-                callback_data=f"delete_event_{event_id}"
+                text="🗑️ Удалить", callback_data=f"delete_event_{event_id}"
             ),
         ],
         [
             InlineKeyboardButton(
-                text="🔙 Назад к событиям",
-                callback_data="back_to_events"
+                text="🔙 Назад к событиям", callback_data="back_to_events"
             )
         ],
     ]
@@ -679,14 +668,12 @@ def get_weekday_selection_keyboard(for_edit=False, event_id=None):
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-# В src/keyboards.py, функция get_edit_event_keyboard:
 def get_edit_event_keyboard(event_id):
     """Клавиатура для редактирования события"""
     keyboard = [
         [
             InlineKeyboardButton(
-                text="📝 Название",
-                callback_data=f"edit_event_field_title_{event_id}"  # Важно: edit_event_field_title_{event_id}
+                text="📝 Название", callback_data=f"edit_event_field_title_{event_id}"
             ),
             InlineKeyboardButton(
                 text="📄 Описание",
@@ -696,11 +683,10 @@ def get_edit_event_keyboard(event_id):
         [
             InlineKeyboardButton(
                 text="📅 Дата и время",
-                callback_data=f"edit_event_field_datetime_{event_id}",  # Используйте datetime, а не event_datetime
+                callback_data=f"edit_event_field_datetime_{event_id}",
             ),
             InlineKeyboardButton(
-                text="📍 Место",
-                callback_data=f"edit_event_field_location_{event_id}"
+                text="📍 Место", callback_data=f"edit_event_field_location_{event_id}"
             ),
         ],
         [
@@ -711,8 +697,7 @@ def get_edit_event_keyboard(event_id):
         ],
         [
             InlineKeyboardButton(
-                text="🔙 Назад к событию",
-                callback_data=f"back_to_event_{event_id}"
+                text="🔙 Назад к событию", callback_data=f"back_to_event_{event_id}"
             )
         ],
     ]

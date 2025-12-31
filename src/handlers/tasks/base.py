@@ -2,11 +2,9 @@
 """Базовые функции для работы с задачами"""
 
 import logging
-import re
 from datetime import datetime
 
 from src.database import get_connection
-from src.task_reminders import get_task_reminder_service
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +41,10 @@ def validate_deadline(deadline: str) -> tuple[bool, str]:
         datetime.strptime(normalized, "%Y-%m-%d")
         return True, ""
     except ValueError:
-        return False, "Неверный формат даты! Используйте ГГГГ-ММ-ДД, ДД.ММ.ГГГГ или ДД/ММ/ГГГГ"
+        return (
+            False,
+            "Неверный формат даты! Используйте ГГГГ-ММ-ДД, ДД.ММ.ГГГГ или ДД/ММ/ГГГГ",
+        )
 
 
 def validate_priority(priority: str) -> tuple[bool, str]:
@@ -60,7 +61,7 @@ def validate_priority(priority: str) -> tuple[bool, str]:
 def normalize_date_for_db(date_str: str):
     """Нормализует дату для сохранения в БД: из любого формата в ГГГГ-ММ-ДД"""
     if not date_str or date_str.lower() == "нет":
-        return None  # Возвращаем None, а не строку 'None'
+        return None
 
     try:
         # Пробуем разные форматы
@@ -72,11 +73,11 @@ def normalize_date_for_db(date_str: str):
                 continue
 
         # Если не распарсилось, пробуем разобрать вручную
-        parts = date_str.split('-')
+        parts = date_str.split("-")
         if len(parts) == 3:
             year = parts[0]
             month = parts[1].zfill(2)  # Добавляем ведущий ноль
-            day = parts[2].zfill(2)    # Добавляем ведущий ноль
+            day = parts[2].zfill(2)  # Добавляем ведущий ноль
             return f"{year}-{month}-{day}"
 
         # Если всё плохо - возвращаем как есть (будет ошибка при валидации)
@@ -153,14 +154,17 @@ def update_task(task_id: int, field: str, value) -> tuple[bool, str]:
             # SQLite использует 1 для True, 0 для False
             is_completed = 1 if value else 0
             cursor.execute(
-                "UPDATE tasks SET is_completed = ? WHERE id = ?", (is_completed, task_id)
+                "UPDATE tasks SET is_completed = ? WHERE id = ?",
+                (is_completed, task_id),
             )
         else:
             return False, f"Неизвестное поле: {field}"
 
         conn.commit()
         rows_affected = cursor.rowcount
-        logger.info(f"Обновлена задача {task_id}, поле '{field}', затронуто строк: {rows_affected}")
+        logger.info(
+            f"Обновлена задача {task_id}, поле '{field}', затронуто строк: {rows_affected}"
+        )
 
         return True, "Поле успешно обновлено"
 
@@ -232,7 +236,9 @@ def get_user_tasks(user_id: int, only_active=True):
     tasks = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
-    logger.info(f"Загружено задач для пользователя {user_id}: {len(tasks)} (only_active={only_active})")
+    logger.info(
+        f"Загружено задач для пользователя {user_id}: {len(tasks)} (only_active={only_active})"
+    )
     return tasks
 
 
@@ -251,6 +257,7 @@ def delete_task(task_id: int) -> bool:
 
 # ==================== ФОРМАТИРОВАНИЕ ====================
 
+
 def format_task_details(task: dict) -> str:
     """Форматирование деталей задачи для отображения"""
     response = "✅ <b>Детали задачи:</b>\n\n"
@@ -267,7 +274,9 @@ def format_task_details(task: dict) -> str:
             today = datetime.now().date()
 
             if deadline_date < today:
-                response += f"⏰ <b>Дедлайн:</b> {formatted_deadline} <b>(ПРОСРОЧЕНО!)</b>\n"
+                response += (
+                    f"⏰ <b>Дедлайн:</b> {formatted_deadline} <b>(ПРОСРОЧЕНО!)</b>\n"
+                )
             else:
                 days_left = (deadline_date - today).days
                 response += f"📅 <b>Дедлайн:</b> {formatted_deadline} (осталось {days_left} дней)\n"
@@ -305,6 +314,7 @@ def format_task_preview(task: dict) -> str:
 
 
 # ==================== УТИЛИТЫ ====================
+
 
 def get_tasks_statistics(user_id: int) -> dict:
     """Получение статистики по задачам пользователя"""

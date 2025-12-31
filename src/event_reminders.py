@@ -1,10 +1,9 @@
-# src/event_reminders.py - ИСПРАВЛЕННЫЙ
+# src/event_reminders.py
 """Модуль напоминаний о событиях"""
 
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List
 
 from aiogram import Bot
 
@@ -86,25 +85,35 @@ class EventReminderService:
                 # Если время напоминания еще не наступило и не в прошлом
                 if reminder_time < event_time:
                     # Не создаем напоминания, которые должны были быть более 10 минут назад
-                    if (now - reminder_time).total_seconds() < 600:  # 600 секунд = 10 минут
-                        await self.create_reminder(event["id"], reminder_time, f"{hours_before}h")
+                    if (
+                        now - reminder_time
+                    ).total_seconds() < 600:  # 600 секунд = 10 минут
+                        await self.create_reminder(
+                            event["id"], reminder_time, f"{hours_before}h"
+                        )
 
             # Обновляем время последнего напоминания
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute(
                 "UPDATE events SET last_reminder_sent = ? WHERE id = ?",
-                (now.strftime("%Y-%m-%d %H:%M"), event["id"])
+                (now.strftime("%Y-%m-%d %H:%M"), event["id"]),
             )
             conn.commit()
             conn.close()
 
-            logger.info(f"Созданы напоминания для события {event['id']}: {event['title']}")
+            logger.info(
+                f"Созданы напоминания для события {event['id']}: {event['title']}"
+            )
 
         except Exception as e:
-            logger.error(f"Ошибка при создании напоминаний для события {event['id']}: {e}")
+            logger.error(
+                f"Ошибка при создании напоминаний для события {event['id']}: {e}"
+            )
 
-    async def create_reminder(self, event_id: int, reminder_time: datetime, reminder_type: str):
+    async def create_reminder(
+        self, event_id: int, reminder_time: datetime, reminder_type: str
+    ):
         """Создание записи о напоминании в БД"""
         conn = get_connection()
         cursor = conn.cursor()
@@ -115,7 +124,7 @@ class EventReminderService:
             SELECT id FROM event_reminders
             WHERE event_id = ? AND reminder_type = ? AND reminder_sent = 0
             """,
-            (event_id, reminder_type)
+            (event_id, reminder_type),
         )
 
         existing = cursor.fetchone()
@@ -133,7 +142,9 @@ class EventReminderService:
                 ),
             )
             conn.commit()
-            logger.info(f"Создано напоминание для события {event_id}: {reminder_type} в {reminder_time}")
+            logger.info(
+                f"Создано напоминание для события {event_id}: {reminder_type} в {reminder_time}"
+            )
 
         conn.close()
 
@@ -146,10 +157,13 @@ class EventReminderService:
         # Используем локальное время для сравнения
         now_local_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
-        logger.info(f"🔍 Проверка напоминаний о событиях, локальное время: {now_local_str}")
+        logger.info(
+            f"🔍 Проверка напоминаний о событиях, локальное время: {now_local_str}"
+        )
 
         # Исправленный запрос для событий
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT er.*, e.title, e.event_datetime, e.description, e.location,
                 u.telegram_id, u.username
             FROM event_reminders er
@@ -157,7 +171,9 @@ class EventReminderService:
             JOIN users u ON e.user_id = u.telegram_id
             WHERE er.reminder_sent = 0
             AND strftime('%Y-%m-%d %H:%M:%S', er.reminder_time) <= ?
-        """, (now_local_str,))
+        """,
+            (now_local_str,),
+        )
 
         reminders = cursor.fetchall()
 
@@ -174,13 +190,18 @@ class EventReminderService:
                 # Помечаем напоминание как отправленное
                 cursor.execute(
                     "UPDATE event_reminders SET reminder_sent = 1 WHERE id = ?",
-                    (reminder["id"],)
+                    (reminder["id"],),
                 )
                 conn.commit()
-                logger.info(f"✅ Напоминание о событии {reminder['id']} отправлено и помечено")
+                logger.info(
+                    f"✅ Напоминание о событии {reminder['id']} отправлено и помечено"
+                )
 
             except Exception as e:
-                logger.error(f"❌ Ошибка при отправке напоминания о событии {reminder['id']}: {e}", exc_info=True)
+                logger.error(
+                    f"❌ Ошибка при отправке напоминания о событии {reminder['id']}: {e}",
+                    exc_info=True,
+                )
 
         conn.close()
 
@@ -193,7 +214,9 @@ class EventReminderService:
             # Преобразуем sqlite3.Row в словарь
             reminder_dict = dict(reminder)
 
-            event_time = datetime.strptime(reminder_dict["event_datetime"], "%Y-%m-%d %H:%M")
+            event_time = datetime.strptime(
+                reminder_dict["event_datetime"], "%Y-%m-%d %H:%M"
+            )
             now = datetime.now()
 
             # Вычисляем оставшееся время
@@ -230,12 +253,12 @@ class EventReminderService:
 
             # Отправляем сообщение
             await self.bot.send_message(
-                chat_id=reminder_dict["telegram_id"],
-                text=message,
-                parse_mode="HTML"
+                chat_id=reminder_dict["telegram_id"], text=message, parse_mode="HTML"
             )
 
-            logger.info(f"Отправлено напоминание пользователю {reminder_dict['telegram_id']} о событии {reminder_dict['title']}")
+            logger.info(
+                f"Отправлено напоминание пользователю {reminder_dict['telegram_id']} о событии {reminder_dict['title']}"
+            )
 
         except Exception as e:
             logger.error(f"Ошибка при формировании напоминания о событии: {e}")
@@ -277,7 +300,7 @@ class EventReminderService:
 
         cursor.execute(
             "DELETE FROM event_reminders WHERE reminder_time < ?",
-            (week_ago.strftime("%Y-%m-%d %H:%M"),)
+            (week_ago.strftime("%Y-%m-%d %H:%M"),),
         )
 
         deleted_count = cursor.rowcount

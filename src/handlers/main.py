@@ -20,6 +20,7 @@ router = Router()
 # Словарь для хранения текущего раздела пользователя
 user_current_section = {}
 
+
 def register_routers(dp):
     dp.include_router(schedule_router)
     dp.include_router(tasks_router)
@@ -306,6 +307,7 @@ async def events_help_handler(callback: CallbackQuery):
     await callback.answer()
     await show_events_help(callback.message)
 
+
 @router.message(Command("test_reminders"))
 async def handle_test_reminders(message: Message):
     """Тестирование напоминаний"""
@@ -328,7 +330,7 @@ async def handle_test_reminders(message: Message):
 
     await message.answer("📊 Запущена фоновая отправка напоминаний")
 
-# В конце файла src/handlers/main.py добавьте:
+
 @router.message(Command("test_reminders"))
 async def handle_test_reminders(message: Message):
     """Тестирование напоминаний"""
